@@ -48,23 +48,45 @@ try {
 }
 
 // --- 로그인 / 인증 서비스 ---
+let isLoggingIn = false;
+
 export function loginWithGoogle() {
     if (!isFirebaseReady) {
         alert("Firebase 모듈이 준비 중입니다. 잠시 후 다시 클릭해 주세요.");
         return Promise.reject("Firebase not ready");
     }
+
+    // 이미 로그인 진행 중이면 중복 요청 방지
+    if (isLoggingIn) {
+        return Promise.resolve();
+    }
+
+    isLoggingIn = true;
     const provider = new GoogleAuthProvider();
-    return signInWithPopup(auth, provider).catch(err => {
-        console.error("Google Login Error:", err);
-        if (err.code === 'auth/unauthorized-domain') {
-            alert(`[도메인 승인 필요]\n현재 접속한 주소(${window.location.hostname})가 Firebase 콘솔에 승인되지 않았습니다.\n\nFirebase 콘솔 -> Authentication -> 설정 -> 승인된 도메인에 '${window.location.hostname}'을 추가해주세요!`);
-        } else if (err.code === 'auth/popup-blocked') {
-            alert("브라우저 팝업이 차단되었습니다. 상단 주소창 옆에서 팝업 허용을 눌러주세요.");
-        } else if (err.code !== 'auth/popup-closed-by-user') {
-            alert(`로그인 오류 (${err.code}): ${err.message}`);
-        }
-        throw err;
-    });
+
+    return signInWithPopup(auth, provider)
+        .then((result) => {
+            isLoggingIn = false;
+            return result;
+        })
+        .catch(err => {
+            isLoggingIn = false;
+            console.error("Google Login Error:", err);
+            
+            // 중복 클릭으로 이전 팝업이 취소된 경우나 사용자가 창을 닫은 경우는 경고창 생략
+            if (err.code === 'auth/cancelled-popup-request' || err.code === 'auth/popup-closed-by-user') {
+                return;
+            }
+
+            if (err.code === 'auth/unauthorized-domain') {
+                alert(`[도메인 승인 필요]\n현재 접속한 주소(${window.location.hostname})가 Firebase 콘솔에 승인되지 않았습니다.\n\nFirebase 콘솔 -> Authentication -> 설정 -> 승인된 도메인에 '${window.location.hostname}'을 추가해주세요!`);
+            } else if (err.code === 'auth/popup-blocked') {
+                alert("브라우저 팝업이 차단되었습니다. 상단 주소창 옆에서 팝업 허용을 눌러주세요.");
+            } else {
+                alert(`로그인 오류 (${err.code}): ${err.message}`);
+            }
+            throw err;
+        });
 }
 
 window.handleGoogleLogin = function() {

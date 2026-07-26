@@ -50,22 +50,26 @@ try {
 // --- 로그인 / 인증 서비스 ---
 export function loginWithGoogle() {
     if (!isFirebaseReady) {
-        alert("Firebase 설정이 아직 준비되지 않았습니다.");
+        alert("Firebase 모듈이 준비 중입니다. 잠시 후 다시 클릭해 주세요.");
         return Promise.reject("Firebase not ready");
     }
     const provider = new GoogleAuthProvider();
     return signInWithPopup(auth, provider).catch(err => {
         console.error("Google Login Error:", err);
         if (err.code === 'auth/unauthorized-domain') {
-            alert(`[도메인 승인 필요]\n현재 접속한 웹 주소(${window.location.hostname})가 Firebase 콘솔의 Authorized Domains에 추가되어야 로그인할 수 있습니다.`);
+            alert(`[도메인 승인 필요]\n현재 접속한 주소(${window.location.hostname})가 Firebase 콘솔에 승인되지 않았습니다.\n\nFirebase 콘솔 -> Authentication -> 설정 -> 승인된 도메인에 '${window.location.hostname}'을 추가해주세요!`);
         } else if (err.code === 'auth/popup-blocked') {
-            alert("브라우저에서 팝업이 차단되었습니다. 팝업 차단을 해제하고 다시 시도해 주세요.");
+            alert("브라우저 팝업이 차단되었습니다. 상단 주소창 옆에서 팝업 허용을 눌러주세요.");
         } else if (err.code !== 'auth/popup-closed-by-user') {
             alert(`로그인 오류 (${err.code}): ${err.message}`);
         }
         throw err;
     });
 }
+
+window.handleGoogleLogin = function() {
+    loginWithGoogle().catch(err => console.log("Google Login process ends:", err));
+};
 
 export function logoutUser() {
     if (!isFirebaseReady) return Promise.resolve();

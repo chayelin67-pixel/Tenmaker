@@ -21,7 +21,7 @@
                 <img id="user-photo" src="" class="user-avatar-img hidden" alt="프로필">
                 <span id="user-avatar-icon" class="user-avatar">🧙‍♂️</span>
                 <input type="text" id="player-name-input" value="10마법사" maxlength="8" title="닉네임 변경">
-                <button id="btn-google-login" class="btn btn-auth" title="Google 로그인">
+                <button id="btn-google-login" class="btn btn-auth" title="Google 로그인" onclick="window.handleGoogleLogin && window.handleGoogleLogin()">
                     <img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg" width="16" alt="G"> 로그인
                 </button>
                 <button id="btn-logout" class="btn btn-auth logout hidden" title="로그아웃">로그아웃</button>

@@ -12,6 +12,17 @@
     }
 })();
 
+// 구글 로그인 헬퍼 핸들러 (firebase-config.js 로드 전 클릭 시 대비)
+if (!window.handleGoogleLogin) {
+    window.handleGoogleLogin = function() {
+        if (window.FirebaseService && window.FirebaseService.loginWithGoogle) {
+            window.FirebaseService.loginWithGoogle();
+        } else {
+            alert("Firebase 연결 로딩 중입니다. 1~2초 후 다시 클릭해 주세요!");
+        }
+    };
+}
+
 // --- 게임 상태 변수 ---
 let gameState = {
     playerName: localStorage.getItem('m10_player_name') || '10마법사',

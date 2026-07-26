@@ -1,32 +1,26 @@
 // ==========================================
-// 10 만들기 마법 왕국 (Make 10 Kingdom) Logic
+// 10 만들기 마법 왕국 (Make 10 Kingdom) Game Engine
 // ==========================================
+console.log("[Tenmaker Game] Script loading...");
 
-// 기존 브라우저 localStorage에 잔존하는 가짜 랭킹 데이터 삭제 마이그레이션
+// 기존 브라우저 localStorage 가짜 데이터 정리 마이그레이션
 (function clearOldFakeRankings() {
-    if (!localStorage.getItem('m10_cleaned_v2')) {
-        localStorage.removeItem('m10_lb_boss_time');
-        localStorage.removeItem('m10_lb_gold');
-        localStorage.removeItem('m10_lb_clears');
-        localStorage.setItem('m10_cleaned_v2', 'true');
+    try {
+        if (!localStorage.getItem('m10_cleaned_v2')) {
+            localStorage.removeItem('m10_lb_boss_time');
+            localStorage.removeItem('m10_lb_gold');
+            localStorage.removeItem('m10_lb_clears');
+            localStorage.setItem('m10_cleaned_v2', 'true');
+        }
+    } catch(e) {
+        console.warn("[Tenmaker Game] LocalStorage migration error:", e);
     }
 })();
 
-// 구글 로그인 헬퍼 핸들러 (firebase-config.js 로드 전 클릭 시 대비)
-if (!window.handleGoogleLogin) {
-    window.handleGoogleLogin = function() {
-        if (window.FirebaseService && window.FirebaseService.loginWithGoogle) {
-            window.FirebaseService.loginWithGoogle();
-        } else {
-            alert("Firebase 연결 로딩 중입니다. 1~2초 후 다시 클릭해 주세요!");
-        }
-    };
-}
-
-// --- 게임 상태 변수 (window.gameState 전역 최우선 선언) ---
+// --- 게임 상태 변수 ---
 window.gameState = {
     playerName: localStorage.getItem('m10_player_name') || '10마법사',
-    gold: parseInt(localStorage.getItem('m10_gold')) || 100, // 기본 100골드 지급
+    gold: parseInt(localStorage.getItem('m10_gold')) || 100, // 기본 100골드
     clears: parseInt(localStorage.getItem('m10_clears')) || 0,
     bossBestTime: parseFloat(localStorage.getItem('m10_boss_best')) || null,
     soundEnabled: true
@@ -57,7 +51,7 @@ let bossState = {
     currentCorrectAnswer: 0
 };
 
-// --- Web Audio API 합성 효과음 ---
+// --- Web Audio API 효과음 ---
 let audioCtx = null;
 function playSound(type) {
     if (!gameState.soundEnabled) return;
@@ -82,9 +76,9 @@ function playSound(type) {
             osc.stop(now + 0.05);
         } else if (type === 'match') {
             osc.type = 'triangle';
-            osc.frequency.setValueAtTime(523.25, now); // C5
-            osc.frequency.setValueAtTime(659.25, now + 0.08); // E5
-            osc.frequency.setValueAtTime(783.99, now + 0.16); // G5
+            osc.frequency.setValueAtTime(523.25, now);
+            osc.frequency.setValueAtTime(659.25, now + 0.08);
+            osc.frequency.setValueAtTime(783.99, now + 0.16);
             gain.gain.setValueAtTime(0.3, now);
             gain.gain.exponentialRampToValueAtTime(0.01, now + 0.25);
             osc.start(now);
@@ -106,7 +100,6 @@ function playSound(type) {
             osc.start(now);
             osc.stop(now + 0.15);
         } else if (type === 'victory') {
-            osc.type = 'sine';
             const notes = [523.25, 659.25, 783.99, 1046.50];
             notes.forEach((freq, idx) => {
                 const noteOsc = audioCtx.createOscillator();
@@ -121,73 +114,97 @@ function playSound(type) {
             });
         }
     } catch(e) {
-        console.log("Audio error:", e);
+        console.warn("[Tenmaker Game] Audio play error:", e);
     }
 }
 
-// --- 기본 랭킹 데이터 (초기 상태는 빈 배열) ---
+// --- 기본 랭킹 데이터 ---
 const defaultBossTimeRankings = [];
 const defaultGoldRankings = [];
 const defaultClearRankings = [];
 
-// --- 초기화 및 UI 갱신 ---
+// --- UI 갱신 ---
+function updateUIHeader() {
+    try {
+        const goldEl = document.getElementById('player-gold');
+        const clearsEl = document.getElementById('player-clears');
+        const nameEl = document.getElementById('player-name-input');
+
+        if (goldEl) goldEl.textContent = gameState.gold.toLocaleString();
+        if (clearsEl) clearsEl.textContent = gameState.clears;
+        if (nameEl) nameEl.value = gameState.playerName;
+
+        localStorage.setItem('m10_gold', gameState.gold);
+        localStorage.setItem('m10_clears', gameState.clears);
+        localStorage.setItem('m10_player_name', gameState.playerName);
+    } catch(e) {
+        console.error("[Tenmaker Game] UI Header update error:", e);
+    }
+}
+
+// 초기화 및 이벤트 리스너 설정
 document.addEventListener('DOMContentLoaded', () => {
+    console.log("[Tenmaker Game] DOM Content Loaded.");
     updateUIHeader();
     setupEventListeners();
 });
 
-function updateUIHeader() {
-    document.getElementById('player-gold').textContent = gameState.gold.toLocaleString();
-    document.getElementById('player-clears').textContent = gameState.clears;
-    document.getElementById('player-name-input').value = gameState.playerName;
-    
-    localStorage.setItem('m10_gold', gameState.gold);
-    localStorage.setItem('m10_clears', gameState.clears);
-    localStorage.setItem('m10_player_name', gameState.playerName);
-}
-
 function setupEventListeners() {
-    document.getElementById('player-name-input').addEventListener('change', (e) => {
-        const val = e.target.value.trim();
-        if (val) {
-            gameState.playerName = val;
-            updateUIHeader();
+    try {
+        const nameInput = document.getElementById('player-name-input');
+        if (nameInput) {
+            nameInput.addEventListener('change', (e) => {
+                const val = e.target.value.trim();
+                if (val) {
+                    gameState.playerName = val;
+                    updateUIHeader();
+                }
+            });
         }
-    });
 
-    document.getElementById('btn-sound-toggle').addEventListener('click', () => {
-        gameState.soundEnabled = !gameState.soundEnabled;
-        document.getElementById('btn-sound-toggle').textContent = gameState.soundEnabled ? '🔊' : '🔇';
-    });
+        const soundBtn = document.getElementById('btn-sound-toggle');
+        if (soundBtn) {
+            soundBtn.addEventListener('click', () => {
+                gameState.soundEnabled = !gameState.soundEnabled;
+                soundBtn.textContent = gameState.soundEnabled ? '🔊' : '🔇';
+            });
+        }
 
-    document.getElementById('btn-hall-of-fame').addEventListener('click', openHallOfFame);
+        const fameBtn = document.getElementById('btn-hall-of-fame');
+        if (fameBtn) {
+            fameBtn.addEventListener('click', openHallOfFame);
+        }
 
-    // 🎮 미니게임 시작 버튼 바인딩 (인라인 제거로 100% 작동 보장)
-    document.querySelectorAll('.start-game-btn').forEach(btn => {
-        btn.addEventListener('click', (e) => {
-            e.preventDefault();
-            e.stopPropagation();
-            const gId = parseInt(btn.dataset.game || btn.getAttribute('data-game'));
-            console.log("Start game clicked for:", gId);
-            startGame(gId);
+        // 미니게임 카드 & 버튼 클릭 바인딩
+        document.querySelectorAll('.start-game-btn').forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                const gId = parseInt(btn.dataset.game || btn.getAttribute('data-game'));
+                console.log("[Tenmaker Game] Start game button clicked:", gId);
+                startGame(gId);
+            });
         });
-    });
 
-    // 👹 보스전 도전 버튼 바인딩
-    const bossBtn = document.getElementById('btn-start-boss');
-    if (bossBtn) {
-        bossBtn.addEventListener('click', (e) => {
-            e.preventDefault();
-            e.stopPropagation();
-            console.log("Start boss clicked!");
-            startBossBattle();
-        });
+        // 보스전 버튼 바인딩
+        const bossBtn = document.getElementById('btn-start-boss');
+        if (bossBtn) {
+            bossBtn.addEventListener('click', (e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                console.log("[Tenmaker Game] Start boss button clicked.");
+                startBossBattle();
+            });
+        }
+    } catch(e) {
+        console.error("[Tenmaker Game] setupEventListeners error:", e);
     }
 }
 
-// 뷰 전환 함수 (100% 강제 활성화 보장)
+// 뷰 전환 함수
 function showView(viewId) {
     try {
+        console.log("[Tenmaker Game] Switching view to:", viewId);
         document.querySelectorAll('.view').forEach(v => {
             v.classList.remove('active');
             v.style.display = 'none';
@@ -196,12 +213,9 @@ function showView(viewId) {
         if (target) {
             target.classList.add('active');
             target.style.display = 'flex';
-            console.log("View switched to:", viewId);
-        } else {
-            console.error("View not found:", viewId);
         }
     } catch(e) {
-        console.error("showView error:", e);
+        console.error("[Tenmaker Game] showView error:", e);
     }
 }
 
@@ -216,14 +230,13 @@ function quitGame() {
 // 미니게임 시작 공통 트리거
 function startGame(gameId) {
     try {
-        console.log("startGame called with ID:", gameId);
+        console.log("[Tenmaker Game] Starting game ID:", gameId);
         playSound('click');
         if (gameId === 1) startGame1();
         else if (gameId === 2) startGame2();
         else if (gameId === 3) startGame3();
     } catch (e) {
-        console.error("startGame Error:", e);
-        alert("게임 시작 중 오류 발생: " + e.message);
+        console.error("[Tenmaker Game] startGame error:", e);
     }
 }
 
@@ -256,13 +269,11 @@ function initG1Grid() {
     gridEl.innerHTML = '';
     g1Tiles = [];
 
-    // 16개 타일 생성 (쌍이 항상 10이 될 수 있도록 생성)
     for (let i = 0; i < 8; i++) {
-        const num1 = Math.floor(Math.random() * 9) + 1; // 1~9
+        const num1 = Math.floor(Math.random() * 9) + 1;
         const num2 = 10 - num1;
         g1Tiles.push(num1, num2);
     }
-    // 셔플
     g1Tiles.sort(() => Math.random() - 0.5);
 
     g1Tiles.forEach((num, index) => {
@@ -286,7 +297,6 @@ function onG1TileClick(tileEl, index, val) {
     if (g1Selected.length === 2) {
         const [first, second] = g1Selected;
         if (first.val + second.val === 10) {
-            // 정답! 10 매칭 성공
             playSound('match');
             first.element.classList.remove('selected');
             second.element.classList.remove('selected');
@@ -297,12 +307,10 @@ function onG1TileClick(tileEl, index, val) {
             document.getElementById('g1-score').textContent = currentGameScore;
             g1Selected = [];
 
-            // 타일 채우기
             setTimeout(() => {
                 replaceG1Tiles(first.element, second.element);
             }, 300);
         } else {
-            // 틀림
             playSound('wrong');
             setTimeout(() => {
                 first.element.classList.remove('selected');
@@ -354,7 +362,6 @@ function initG2Stage() {
     stage.innerHTML = '';
     g2Bubbles = [];
 
-    // 7개의 버블 주기적 스폰
     for (let i = 0; i < 6; i++) {
         spawnG2Bubble(stage);
     }
@@ -404,12 +411,10 @@ function onG2BubbleClick(bObj, stage) {
     if (g2SelectedBubbles.length === 2) {
         const [b1, b2] = g2SelectedBubbles;
         if (b1.val + b2.val === 10) {
-            // 버블 팝!
             playSound('match');
             currentGameScore += 10;
             document.getElementById('g2-score').textContent = currentGameScore;
 
-            // 제거 후 재생성
             [b1, b2].forEach(b => {
                 b.el.remove();
                 g2Bubbles = g2Bubbles.filter(item => item !== b);
@@ -456,17 +461,14 @@ function generateG3Question() {
     let correctAns = 0;
 
     if (qType === 0) {
-        // ? + A = 10
         const a = Math.floor(Math.random() * 9) + 1;
         correctAns = 10 - a;
         qText = `? + ${a} = 10`;
     } else if (qType === 1) {
-        // 10 - B = ?
         const b = Math.floor(Math.random() * 9) + 1;
         correctAns = 10 - b;
         qText = `10 - ${b} = ?`;
     } else {
-        // A + ? + B = 10
         const a = Math.floor(Math.random() * 5) + 1;
         const b = Math.floor(Math.random() * (9 - a)) + 1;
         correctAns = 10 - (a + b);
@@ -475,7 +477,6 @@ function generateG3Question() {
 
     document.getElementById('g3-question').textContent = qText;
 
-    // 보기 4개 생성
     const options = new Set([correctAns]);
     while (options.size < 4) {
         const fake = Math.floor(Math.random() * 9) + 1;
@@ -504,13 +505,6 @@ function generateG3Question() {
     });
 }
 
-// 미니게임 시작 공통 트리거
-function startGame(gameId) {
-    if (gameId === 1) startGame1();
-    else if (gameId === 2) startGame2();
-    else if (gameId === 3) startGame3();
-}
-
 // 미니게임 종결 후 보상
 function endMiniGame(gameId) {
     clearInterval(gameTimer);
@@ -523,7 +517,6 @@ function endMiniGame(gameId) {
     updateUIHeader();
     saveToLeaderboards(earnedGold);
 
-    // 결과 모달 표시
     document.getElementById('result-title').textContent = '🎮 미니게임 클리어!';
     document.getElementById('result-icon').textContent = '🎉';
     document.getElementById('result-desc').textContent = `획득 점수: ${currentGameScore}점! 순발력이 돋보였습니다!`;
@@ -539,13 +532,12 @@ function endMiniGame(gameId) {
 // ==========================================
 function startBossBattle() {
     try {
-        console.log("startBossBattle triggered!");
+        console.log("[Tenmaker Game] Starting Boss Battle...");
         if (gameState.gold < 100) {
             alert('🪙 보스전에 도전하려면 최소 100 Gold가 필요합니다! 미니게임을 먼저 플레이하여 골드를 모으세요.');
             return;
         }
 
-        // 골드 차감
         gameState.gold -= 100;
         updateUIHeader();
         playSound('boss_hit');
@@ -560,7 +552,6 @@ function startBossBattle() {
 
         showView('boss-view');
 
-        // 스톱워치 인터벌 (10ms 단위 갱신)
         bossState.timerInterval = setInterval(() => {
             const now = Date.now();
             const diff = (now - bossState.startTime) / 1000;
@@ -570,8 +561,7 @@ function startBossBattle() {
 
         generateBossQuestion();
     } catch(e) {
-        console.error("startBossBattle error:", e);
-        alert("보스전 시작 오류: " + e.message);
+        console.error("[Tenmaker Game] startBossBattle error:", e);
     }
 }
 
@@ -582,24 +572,20 @@ function generateBossQuestion() {
     const hpPercent = ((10 - (bossState.currentQIndex - 1)) / 10) * 100;
     document.getElementById('boss-hp-fill').style.width = hpPercent + '%';
 
-    // 10의 마왕 문제 출제 (점진적 난이도 증가)
     let qText = '';
     let correctAns = 0;
 
     if (bossState.currentQIndex <= 4) {
-        // 단일 미지수: A + ? = 10
         const a = Math.floor(Math.random() * 9) + 1;
         correctAns = 10 - a;
         qText = `${a} + ? = 10`;
     } else if (bossState.currentQIndex <= 7) {
-        // 3개 연산: A + ? + B = 10
         const a = Math.floor(Math.random() * 4) + 1;
         const b = Math.floor(Math.random() * (9 - a)) + 1;
         correctAns = 10 - (a + b);
         qText = `${a} + ? + ${b} = 10`;
     } else {
-        // 혼합 연산: 10 - A - ? = B
-        const a = Math.floor(Math.random() * 4) + 1; // 1~4
+        const a = Math.floor(Math.random() * 4) + 1;
         const ans = Math.floor(Math.random() * (9 - a)) + 1;
         const b = 10 - a - ans;
         correctAns = ans;
@@ -609,7 +595,6 @@ function generateBossQuestion() {
     bossState.currentCorrectAnswer = correctAns;
     document.getElementById('boss-question-text').textContent = qText;
 
-    // 보기 4개 생성
     const options = new Set([correctAns]);
     while (options.size < 4) {
         const fake = Math.floor(Math.random() * 9) + 1;
@@ -631,22 +616,19 @@ function generateBossQuestion() {
 
 function onBossAnswerSelect(val) {
     if (val === bossState.currentCorrectAnswer) {
-        // 맞춤!
         playSound('boss_hit');
         const bossAvatar = document.getElementById('boss-avatar');
         bossAvatar.classList.add('hit');
         setTimeout(() => bossAvatar.classList.remove('hit'), 300);
 
         if (bossState.currentQIndex >= 10) {
-            // 보스 완파 성공!
             finishBossBattle();
         } else {
             generateBossQuestion();
         }
     } else {
-        // 틀림 -> 시간 페널티 +1.5초!
         playSound('wrong');
-        bossState.startTime -= 1500; // 스톱워치 1.5초 추가 효과
+        bossState.startTime -= 1500;
     }
 }
 
@@ -658,16 +640,13 @@ function finishBossBattle() {
     gameState.gold += rewardGold;
     updateUIHeader();
 
-    // 최단 기록 업데이트 확인
     if (!gameState.bossBestTime || finalTime < gameState.bossBestTime) {
         gameState.bossBestTime = finalTime;
         localStorage.setItem('m10_boss_best', finalTime);
     }
 
-    // 랭킹 저장 (Local & Cloud Firestore)
     saveBossTimeLeaderboard(finalTime);
 
-    // 결과 창
     document.getElementById('result-title').textContent = '👹 보스 퇴치 성공!';
     document.getElementById('result-icon').textContent = '👑';
     document.getElementById('result-desc').textContent = `10의 마왕 텐크라켄을 무찔렀습니다! ${gameState.playerName}님의 기록이 명예의 전당 클라우드에 업로드되었습니다.`;
@@ -685,7 +664,7 @@ function closeResultModal() {
 }
 
 // ==========================================
-// 🏆 명예의 전당 (Leaderboard) 저장 및 처리
+// 🏆 명예의 전당 (Leaderboard) 처리
 // ==========================================
 function getLeaderboard(key, defaultData) {
     const stored = localStorage.getItem(key);
@@ -698,21 +677,18 @@ function getLeaderboard(key, defaultData) {
 }
 
 function saveBossTimeLeaderboard(time) {
-    // 1. LocalStorage 저장
     let list = getLeaderboard('m10_lb_boss_time', defaultBossTimeRankings);
     list.push({ name: gameState.playerName, time: time });
     list.sort((a, b) => a.time - b.time);
     list = list.slice(0, 10);
     localStorage.setItem('m10_lb_boss_time', JSON.stringify(list));
 
-    // 2. Firebase Cloud Firestore 저장
     if (window.FirebaseService && window.FirebaseService.isReady()) {
         window.FirebaseService.saveBossTimeRecordToCloud(gameState.playerName, time);
     }
 }
 
 function saveToLeaderboards(earnedGold) {
-    // 1. LocalStorage 저장
     let goldList = getLeaderboard('m10_lb_gold', defaultGoldRankings);
     const existingG = goldList.find(x => x.name === gameState.playerName);
     if (existingG) {
@@ -733,7 +709,6 @@ function saveToLeaderboards(earnedGold) {
     clearList.sort((a, b) => b.clears - a.clears);
     localStorage.setItem('m10_lb_clears', JSON.stringify(clearList.slice(0, 10)));
 
-    // 2. Firebase Cloud Firestore 저장
     if (window.FirebaseService && window.FirebaseService.isReady()) {
         window.FirebaseService.saveGoldRecordToCloud(gameState.playerName, gameState.gold);
         window.FirebaseService.saveClearRecordToCloud(gameState.playerName, gameState.clears);
@@ -760,16 +735,6 @@ function closeHallOfFame() {
     }
 }
 
-// --- 전역 함수 명시적 바인딩 (인라인 HTML onclick 호출 보장) ---
-window.startGame = startGame;
-window.startBossBattle = startBossBattle;
-window.quitGame = quitGame;
-window.closeResultModal = closeResultModal;
-window.switchHallTab = switchHallTab;
-window.openHallOfFame = openHallOfFame;
-window.closeHallOfFame = closeHallOfFame;
-window.resetLeaderboardData = resetLeaderboardData;
-
 function switchHallTab(tabName) {
     playSound('click');
     document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
@@ -780,17 +745,16 @@ function switchHallTab(tabName) {
 }
 
 async function renderHallOfFame() {
+    console.log("[Tenmaker Game] Rendering Hall of Fame...");
     const bossUl = document.getElementById('list-boss-time');
     const goldUl = document.getElementById('list-gold');
     const clearUl = document.getElementById('list-clears');
 
-    // 로딩 상태 표시
     const loadingHtml = '<li class="empty-rank">⏳ 랭킹 목록을 불러오는 중...</li>';
     if (bossUl) bossUl.innerHTML = loadingHtml;
     if (goldUl) goldUl.innerHTML = loadingHtml;
     if (clearUl) clearUl.innerHTML = loadingHtml;
 
-    // Firebase Cloud 데이터 시도 후 Local fallback
     let bossList = null;
     let goldList = null;
     let clearList = null;
@@ -801,7 +765,7 @@ async function renderHallOfFame() {
             goldList = await window.FirebaseService.fetchTop10CloudLeaderboard('gold');
             clearList = await window.FirebaseService.fetchTop10CloudLeaderboard('clears');
         } catch (e) {
-            console.error("Cloud leaderboard fetch failed, switching to local:", e);
+            console.error("[Tenmaker Game] Cloud leaderboard fetch error:", e);
         }
     }
 
@@ -823,25 +787,29 @@ async function renderHallOfFame() {
     }
 
     // 2. 골드
-    goldUl.innerHTML = '';
-    if (!goldList || goldList.length === 0) {
-        goldUl.innerHTML = '<li class="empty-rank">아직 등록된 골드 랭킹이 없습니다. 미니게임을 플레이해보세요! 🪙</li>';
-    } else {
-        goldList.forEach((item, idx) => {
-            const g = typeof item.gold === 'number' ? item.gold.toLocaleString() : item.gold;
-            goldUl.appendChild(createRankItem(idx + 1, item.name, `${g} Gold`));
-        });
+    if (goldUl) {
+        goldUl.innerHTML = '';
+        if (!goldList || goldList.length === 0) {
+            goldUl.innerHTML = '<li class="empty-rank">아직 등록된 골드 랭킹이 없습니다. 미니게임을 플레이해보세요! 🪙</li>';
+        } else {
+            goldList.forEach((item, idx) => {
+                const g = typeof item.gold === 'number' ? item.gold.toLocaleString() : (item.gold || 0);
+                goldUl.appendChild(createRankItem(idx + 1, item.name, `${g} Gold`));
+            });
+        }
     }
 
     // 3. 미니게임 클리어
-    const clearUl = document.getElementById('list-clears');
-    clearUl.innerHTML = '';
-    if (!clearList || clearList.length === 0) {
-        clearUl.innerHTML = '<li class="empty-rank">아직 등록된 클리어 랭킹이 없습니다. 미니게임에 도전해보세요! 🎮</li>';
-    } else {
-        clearList.forEach((item, idx) => {
-            clearUl.appendChild(createRankItem(idx + 1, item.name, `${item.clears}회 클리어`));
-        });
+    if (clearUl) {
+        clearUl.innerHTML = '';
+        if (!clearList || clearList.length === 0) {
+            clearUl.innerHTML = '<li class="empty-rank">아직 등록된 클리어 랭킹이 없습니다. 미니게임에 도전해보세요! 🎮</li>';
+        } else {
+            clearList.forEach((item, idx) => {
+                const c = item.clears || 0;
+                clearUl.appendChild(createRankItem(idx + 1, item.name, `${c}회 클리어`));
+            });
+        }
     }
 }
 
@@ -876,5 +844,17 @@ function createRankItem(rank, name, valueStr) {
 }
 
 function escapeHtml(str) {
-    return str.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+    return String(str).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
 }
+
+// --- 전역 함수 명시적 바인딩 ---
+window.startGame = startGame;
+window.startBossBattle = startBossBattle;
+window.quitGame = quitGame;
+window.closeResultModal = closeResultModal;
+window.switchHallTab = switchHallTab;
+window.openHallOfFame = openHallOfFame;
+window.closeHallOfFame = closeHallOfFame;
+window.resetLeaderboardData = resetLeaderboardData;
+
+console.log("[Tenmaker Game] Script fully initialized.");

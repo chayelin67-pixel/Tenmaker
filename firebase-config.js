@@ -91,16 +91,20 @@ async function applyUserToUI(user) {
                 if (window.gameState) window.gameState.playerName = user.displayName;
             }
 
-            // 📥 로그인한 유저 계정 전용 Firestore 클라우드 데이터 불러오기
+            // 📥 로그인한 계정의 최신 Firestore 클라우드 데이터 로드
             const cloudData = await loadUserDataFromCloud();
             if (cloudData && window.gameState) {
-                window.gameState.gold = cloudData.gold !== undefined ? cloudData.gold : 0;
-                window.gameState.clears = cloudData.clears !== undefined ? cloudData.clears : 0;
+                window.gameState.gold = parseInt(cloudData.gold !== undefined ? cloudData.gold : 0);
+                window.gameState.clears = parseInt(cloudData.clears !== undefined ? cloudData.clears : 0);
                 window.gameState.bossBestTime = cloudData.bossBestTime || null;
+                console.log("[Tenmaker Auth] Loaded user score:", window.gameState.gold, window.gameState.clears);
                 if (typeof window.updateUIHeader === 'function') window.updateUIHeader();
+            } else if (window.gameState) {
+                // 최초 로그인한 유저인 경우 현재 상태를 해당 구글 계정 첫 데이터로 클라우드 업로드!
+                saveUserDataToCloud(window.gameState);
             }
         } else {
-            console.log("[Tenmaker Auth] User signed out -> Resetting score and UI.");
+            console.log("[Tenmaker Auth] User signed out -> Resetting score and showing Guest Login view.");
             if (btnLogin) {
                 btnLogin.style.display = 'inline-flex';
                 btnLogin.classList.remove('hidden');
@@ -112,7 +116,7 @@ async function applyUserToUI(user) {
             if (imgEl) imgEl.style.display = 'none';
             if (iconEl) iconEl.style.display = 'inline-block';
 
-            // 📤 로그아웃 시 게스트 초기 상태로 점수/골드 깨끗하게 리셋!
+            // 📤 로그아웃 시 무조건 게스트 화면 & 점수 리셋!
             if (typeof window.resetGameStateToDefault === 'function') {
                 window.resetGameStateToDefault();
             }

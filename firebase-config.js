@@ -66,11 +66,9 @@ let isFirebaseReady = false;
 
 async function autoWipeCloudLeaderboardsOnce() {
     try {
-        if (!localStorage.getItem('m10_cloud_wiped_v3')) {
-            console.log("[Tenmaker Cloud] Wiping all cloud leaderboards for fresh release...");
-            await clearAllCloudLeaderboards();
-            localStorage.setItem('m10_cloud_wiped_v3', 'true');
-        }
+        console.log("[Tenmaker Cloud] Force clearing all Gold and Clear cloud leaderboards...");
+        await clearAllCloudLeaderboards();
+        localStorage.setItem('m10_cloud_wiped_v4', 'true');
     } catch(e) {
         console.error("Auto wipe failed:", e);
     }

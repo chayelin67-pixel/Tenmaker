@@ -55,11 +55,26 @@ let isFirebaseReady = false;
 
         // 백그라운드 인증 상태 관찰자 시작
         initAuthObserver();
+
+        // 🧹 클라우드 랭킹 1회성 자동 완벽 삭제 배포 마이그레이션
+        autoWipeCloudLeaderboardsOnce();
     } catch (e) {
         console.warn("[Tenmaker Firebase] Firebase initialization failed or offline mode:", e);
         isFirebaseReady = false;
     }
 })();
+
+async function autoWipeCloudLeaderboardsOnce() {
+    try {
+        if (!localStorage.getItem('m10_cloud_wiped_v3')) {
+            console.log("[Tenmaker Cloud] Wiping all cloud leaderboards for fresh release...");
+            await clearAllCloudLeaderboards();
+            localStorage.setItem('m10_cloud_wiped_v3', 'true');
+        }
+    } catch(e) {
+        console.error("Auto wipe failed:", e);
+    }
+}
 
 // UI 안전 업데이트 함수 (Non-blocking)
 async function applyUserToUI(user) {

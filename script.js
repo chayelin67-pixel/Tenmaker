@@ -3,15 +3,13 @@
 // ==========================================
 console.log("[Tenmaker Game] Script loading...");
 
-// 기존 브라우저 localStorage 가짜 데이터 정리 마이그레이션
+// 배포용 명예의 전당 완전 초기화 마이그레이션
 (function clearOldFakeRankings() {
     try {
-        if (!localStorage.getItem('m10_cleaned_v2')) {
-            localStorage.removeItem('m10_lb_boss_time');
-            localStorage.removeItem('m10_lb_gold');
-            localStorage.removeItem('m10_lb_clears');
-            localStorage.setItem('m10_cleaned_v2', 'true');
-        }
+        localStorage.removeItem('m10_lb_boss_time');
+        localStorage.removeItem('m10_lb_gold');
+        localStorage.removeItem('m10_lb_clears');
+        console.log("[Tenmaker Game] Local leaderboards reset for fresh release.");
     } catch(e) {
         console.warn("[Tenmaker Game] LocalStorage migration error:", e);
     }

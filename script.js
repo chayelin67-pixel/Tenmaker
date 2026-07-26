@@ -735,14 +735,18 @@ function getLeaderboard(key, defaultData) {
 }
 
 function resetGameStateToDefault() {
-    console.log("[Tenmaker Game] Resetting game state to default (logged out).");
+    console.log("[Tenmaker Game] Purging local state to 0 Gold (logged out).");
     gameState.gold = 0;
     gameState.clears = 0;
     gameState.bossBestTime = null;
     gameState.playerName = '10마법사';
+    
+    // 로컬스토리지 잔여물 완전 삭제
     localStorage.removeItem('m10_gold');
     localStorage.removeItem('m10_clears');
+    localStorage.removeItem('m10_boss_best');
     localStorage.setItem('m10_player_name', '10마법사');
+
     updateUIHeader();
 }
 

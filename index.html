@@ -1,0 +1,231 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>10 만들기 마법 왕국 (Make 10 Kingdom)</title>
+    <link rel="stylesheet" href="style.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;600;800;900&family=Noto+Sans+KR:wght@400;700;900&display=swap" rel="stylesheet">
+</head>
+<body>
+    <div id="app">
+        <!-- 배경 다이내믹 엘리먼트 -->
+        <div class="bg-glow bg-glow-1"></div>
+        <div class="bg-glow bg-glow-2"></div>
+
+        <!-- 상단 헤더 / 유저 정보 -->
+        <header class="game-header">
+            <div class="user-profile">
+                <img id="user-photo" src="" class="user-avatar-img hidden" alt="프로필">
+                <span id="user-avatar-icon" class="user-avatar">🧙‍♂️</span>
+                <input type="text" id="player-name-input" value="10마법사" maxlength="8" title="닉네임 변경">
+                <button id="btn-google-login" class="btn btn-auth" title="Google 로그인">
+                    <img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg" width="16" alt="G"> 로그인
+                </button>
+                <button id="btn-logout" class="btn btn-auth logout hidden" title="로그아웃">로그아웃</button>
+            </div>
+            <div class="header-stats">
+                <div class="stat-badge gold-badge">
+                    <span class="stat-icon">🪙</span>
+                    <span id="player-gold">0</span> Gold
+                </div>
+                <div class="stat-badge clear-badge">
+                    <span class="stat-icon">⭐</span>
+                    <span id="player-clears">0</span> 클리어
+                </div>
+                <button id="btn-sound-toggle" class="icon-btn" title="음소거 토글">🔊</button>
+                <button id="btn-hall-of-fame" class="icon-btn trophy-btn" title="명예의 전당">🏆</button>
+            </div>
+        </header>
+
+        <!-- 메인 로비 화면 -->
+        <main id="lobby-view" class="view active">
+            <div class="hero-section">
+                <h1 class="game-title"><span class="highlight">10</span> 만들기 마법 왕국</h1>
+                <p class="game-subtitle">20~30초 초스피드 미니게임으로 골드를 모아 10의 마왕에게 도전하세요!</p>
+            </div>
+
+            <!-- 미니게임 카드 목록 -->
+            <section class="game-selection">
+                <h2 class="section-title">🎮 미니게임 선택 (20~30초)</h2>
+                <div class="card-grid">
+                    <!-- 미니게임 1 -->
+                    <div class="game-card" data-game="1">
+                        <div class="card-tag">25초 제한</div>
+                        <div class="card-icon">🧩</div>
+                        <h3>스피드 짝맞추기</h3>
+                        <p>숫자 2개를 골라 합이 10이 되도록 짝을 맞춰 없애세요!</p>
+                        <button class="btn btn-primary start-game-btn" onclick="startGame(1)">게임 시작</button>
+                    </div>
+
+                    <!-- 미니게임 2 -->
+                    <div class="game-card" data-game="2">
+                        <div class="card-tag">30초 제한</div>
+                        <div class="card-icon">🔮</div>
+                        <h3>10 버블 팝</h3>
+                        <p>위에서 떨어지는 숫자 방울 2개를 터치하여 10을 터뜨리세요!</p>
+                        <button class="btn btn-primary start-game-btn" onclick="startGame(2)">게임 시작</button>
+                    </div>
+
+                    <!-- 미니게임 3 -->
+                    <div class="game-card" data-game="3">
+                        <div class="card-tag">20초 제한</div>
+                        <div class="card-icon">⚡</div>
+                        <h3>초스피드 10 퀴즈</h3>
+                        <p>? + 4 = 10 퀴즈의 정답을 순발력 있게 번개처럼 맞추세요!</p>
+                        <button class="btn btn-primary start-game-btn" onclick="startGame(3)">게임 시작</button>
+                    </div>
+                </div>
+            </section>
+
+            <!-- 보스전 입장 카드 -->
+            <section class="boss-section">
+                <div class="boss-card">
+                    <div class="boss-banner">
+                        <span class="boss-icon">👾</span>
+                        <div class="boss-info">
+                            <h2>10의 마왕 텐크라켄</h2>
+                            <p>연속 10문제를 가장 빠르게 정복하고 <strong>보스 타임어택 명예의 전당</strong>에 이름을 올리세요!</p>
+                        </div>
+                    </div>
+                    <div class="boss-action">
+                        <div class="cost-tag">입장료: 🪙 100 Gold</div>
+                        <button id="btn-start-boss" class="btn btn-boss" onclick="startBossBattle()">👹 보스전 도전</button>
+                    </div>
+                </div>
+            </section>
+        </main>
+
+        <!-- 미니게임 1: 스피드 짝맞추기 VIEW -->
+        <section id="game1-view" class="view">
+            <div class="game-top-bar">
+                <button class="btn btn-secondary" onclick="quitGame()">‹ 로비로</button>
+                <div class="timer-container">⏱️ 남은시간: <span id="g1-timer">25</span>s</div>
+                <div class="score-container">점수: <span id="g1-score">0</span></div>
+            </div>
+            <div class="game-container">
+                <h3 class="game-hint">두 카드의 합이 <strong>10</strong>이 되도록 선택하세요!</h3>
+                <div id="g1-grid" class="pair-grid"></div>
+            </div>
+        </section>
+
+        <!-- 미니게임 2: 10 버블 팝 VIEW -->
+        <section id="game2-view" class="view">
+            <div class="game-top-bar">
+                <button class="btn btn-secondary" onclick="quitGame()">‹ 로비로</button>
+                <div class="timer-container">⏱️ 남은시간: <span id="g2-timer">30</span>s</div>
+                <div class="score-container">점수: <span id="g2-score">0</span></div>
+            </div>
+            <div class="game-container bubble-container">
+                <h3 class="game-hint">숫자 버블 2개를 선택해 합을 <strong>10</strong>으로 만들어 팝!</h3>
+                <div id="g2-canvas-area" class="bubble-stage"></div>
+            </div>
+        </section>
+
+        <!-- 미니게임 3: 초스피드 퀴즈 VIEW -->
+        <section id="game3-view" class="view">
+            <div class="game-top-bar">
+                <button class="btn btn-secondary" onclick="quitGame()">‹ 로비로</button>
+                <div class="timer-container">⏱️ 남은시간: <span id="g3-timer">20</span>s</div>
+                <div class="score-container">점수: <span id="g3-score">0</span></div>
+            </div>
+            <div class="game-container quiz-container">
+                <div class="quiz-card">
+                    <div id="g3-question" class="quiz-question">? + 4 = 10</div>
+                    <div id="g3-options" class="quiz-options-grid"></div>
+                </div>
+            </div>
+        </section>
+
+        <!-- 보스전 VIEW -->
+        <section id="boss-view" class="view">
+            <div class="boss-header">
+                <button class="btn btn-secondary" onclick="quitGame()">포기하기</button>
+                <div class="boss-timer">⏱️ 소요 시간: <span id="boss-stopwatch">00.00</span>초</div>
+                <div class="boss-progress">문제 <span id="boss-current-q">1</span> / 10</div>
+            </div>
+            <div class="boss-stage">
+                <div class="boss-avatar-wrapper">
+                    <div class="boss-avatar" id="boss-avatar">👾</div>
+                    <div class="boss-hp-bar">
+                        <div id="boss-hp-fill" class="hp-fill" style="width: 100%;"></div>
+                    </div>
+                    <div class="boss-name">10의 마왕 텐크라켄</div>
+                </div>
+                <div class="boss-quiz-box">
+                    <div id="boss-question-text" class="boss-q-text">3 + ? + 2 = 10</div>
+                    <div id="boss-options-grid" class="quiz-options-grid"></div>
+                </div>
+            </div>
+        </section>
+
+        <!-- 결과 처리 모달 -->
+        <div id="result-modal" class="modal">
+            <div class="modal-content">
+                <h2 id="result-title">게임 완료!</h2>
+                <div class="result-icon" id="result-icon">🎉</div>
+                <div class="result-details">
+                    <p id="result-desc">20초 동안 15개의 짝을 맞추었습니다!</p>
+                    <div class="reward-box">
+                        <span>획득 골드:</span>
+                        <span class="gold-text">+<strong id="result-gold">0</strong> Gold 🪙</span>
+                    </div>
+                    <div id="boss-time-result-box" class="time-result-box hidden">
+                        <span>보스전 클리어 타임:</span>
+                        <span class="time-text">⏱️ <strong id="result-boss-time">00.00</strong>초</span>
+                    </div>
+                </div>
+                <div class="modal-actions">
+                    <button class="btn btn-primary" onclick="closeResultModal()">확인</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- 명예의 전당 모달 -->
+        <div id="hall-modal" class="modal">
+            <div class="modal-content large-modal">
+                <div class="modal-header">
+                    <h2>🏆 명예의 전당 (Leaderboard)</h2>
+                    <div style="display:flex; gap:10px; align-items:center;">
+                        <button class="btn btn-secondary" style="padding:4px 10px; font-size:0.8rem;" onclick="resetLeaderboardData()">🗑️ 기록 초기화</button>
+                        <button class="close-btn" onclick="closeHallOfFame()">✕</button>
+                    </div>
+                </div>
+                
+                <!-- 탭 버튼 3종 -->
+                <div class="tab-buttons">
+                    <button class="tab-btn active" data-tab="boss-time" onclick="switchHallTab('boss-time')">⏱️ 보스 타임어택</button>
+                    <button class="tab-btn" data-tab="gold" onclick="switchHallTab('gold')">💰 골드 랭킹</button>
+                    <button class="tab-btn" data-tab="clears" onclick="switchHallTab('clears')">🎮 미니게임 클리어</button>
+                </div>
+
+                <!-- 랭킹 리스트 컨테이너 -->
+                <div class="ranking-content">
+                    <!-- 보스 타임어택 탭 -->
+                    <div id="tab-boss-time" class="tab-panel active">
+                        <p class="tab-desc">보스전 10문제를 성공적으로 정복한 최단 기록(초) 순위입니다.</p>
+                        <ul id="list-boss-time" class="ranking-list"></ul>
+                    </div>
+
+                    <!-- 골드 랭킹 탭 -->
+                    <div id="tab-gold" class="tab-panel">
+                        <p class="tab-desc">가장 많은 골드를 모은 랭커 순위입니다.</p>
+                        <ul id="list-gold" class="ranking-list"></ul>
+                    </div>
+
+                    <!-- 미니게임 클리어 탭 -->
+                    <div id="tab-clears" class="tab-panel">
+                        <p class="tab-desc">미니게임을 가장 많이 클리어한 랭커 순위입니다.</p>
+                        <ul id="list-clears" class="ranking-list"></ul>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script type="module" src="firebase-config.js"></script>
+    <script src="script.js"></script>
+</body>
+</html>

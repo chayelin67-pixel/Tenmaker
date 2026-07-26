@@ -564,17 +564,24 @@ function endMiniGame(gameId) {
     playSound('victory');
 }
 
+let isStartingBoss = false;
+
 // ==========================================
 // 👹 보스전 (Boss Challenge)
 // ==========================================
 function startBossBattle() {
     try {
+        if (isStartingBoss) return;
+        isStartingBoss = true;
+
         console.log("[Tenmaker Game] Starting Boss Battle...");
         if (gameState.gold < 100) {
+            isStartingBoss = false;
             alert('🪙 보스전에 도전하려면 최소 100 Gold가 필요합니다! 미니게임을 먼저 플레이하여 골드를 모으세요.');
             return;
         }
 
+        // 100 Gold 단 1회 정확하게 차감
         gameState.gold -= 100;
         updateUIHeader();
         playSound('boss_hit');
@@ -597,7 +604,9 @@ function startBossBattle() {
         }, 30);
 
         generateBossQuestion();
+        setTimeout(() => { isStartingBoss = false; }, 500);
     } catch(e) {
+        isStartingBoss = false;
         console.error("[Tenmaker Game] startBossBattle error:", e);
     }
 }

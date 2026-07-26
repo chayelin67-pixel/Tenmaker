@@ -401,7 +401,18 @@ function initG2Stage() {
 function spawnG2Bubble(stage) {
     const el = document.createElement('div');
     el.className = 'bubble';
-    const val = Math.floor(Math.random() * 9) + 1;
+    
+    let val = 5;
+    // 10이 되는 짝 조합 스마트 생성 (60% 확률로 기존 방울의 10 짝 생성)
+    if (g2Bubbles.length > 0 && Math.random() < 0.6) {
+        const targetB = g2Bubbles[Math.floor(Math.random() * g2Bubbles.length)];
+        val = 10 - targetB.val;
+    } else {
+        val = Math.floor(Math.random() * 9) + 1;
+    }
+    
+    // 1~9 범위 안전 검증
+    val = Math.max(1, Math.min(9, val));
     el.textContent = val;
 
     const x = Math.random() * (stage.clientWidth - 70);

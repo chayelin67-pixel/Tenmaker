@@ -167,6 +167,11 @@ body {
     color: var(--accent-gold);
     border-color: rgba(255, 215, 0, 0.3);
 }
+.gold-coin {
+    font-family: 'Apple Color Emoji', 'Segoe UI Emoji', 'Noto Color Emoji', sans-serif;
+    color: #ffd700;
+    text-shadow: 0 0 6px rgba(255, 215, 0, 0.8);
+}
 .clear-badge {
     color: var(--accent-cyan);
     border-color: rgba(0, 240, 255, 0.3);

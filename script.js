@@ -167,11 +167,9 @@ function setupEventListeners() {
 
     if (btnGoogle) {
         btnGoogle.onclick = (e) => {
-            if (e) {
-                e.preventDefault();
-            }
-            if (window.FirebaseService && window.FirebaseService.loginWithGoogle) {
-                window.FirebaseService.loginWithGoogle();
+            if (e) e.preventDefault();
+            if (window.doGoogleLogin) {
+                window.doGoogleLogin();
             }
         };
     }

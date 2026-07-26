@@ -53,21 +53,38 @@ let isLoggingIn = false;
 
 export function loginWithGoogle() {
     if (!isFirebaseReady) {
-        alert("Firebase 모듈이 준비 중입니다. 잠시 후 다시 클릭해 주세요.");
+        alert("Firebase 설정이 아직 준비되지 않았습니다. 잠시 후 다시 시도해 주세요.");
         return Promise.reject("Firebase not ready");
     }
 
     const provider = new GoogleAuthProvider();
-    // 팝업 대신 안전한 페이지 이동(Redirect) 방식으로 로그인 수행
     return signInWithRedirect(auth, provider).catch(err => {
         console.error("Google Login Redirect Error:", err);
         if (err.code === 'auth/unauthorized-domain') {
-            alert(`[도메인 승인 필요]\n현재 접속한 주소(${window.location.hostname})가 Firebase 콘솔에 승인되지 않았습니다.\n\nFirebase 콘솔 -> Authentication -> 설정 -> 승인된 도메인에 '${window.location.hostname}'을 추가해주세요!`);
+            alert(`[도메인 승인 필요]\n현재 접속한 주소(${window.location.hostname})가 Firebase 콘솔의 Authorized Domains에 추가되어야 합니다.`);
         } else {
-            alert(`로그인 이동 오류 (${err.code}): ${err.message}`);
+            alert(`로그인 오류 (${err.code}): ${err.message}`);
         }
     });
 }
+
+// 모듈 로딩 시점 상관없이 100% 동작하는 전역 로그인 핸들러
+window.doGoogleLogin = function() {
+    const btn = document.getElementById('btn-google-login');
+    if (btn) btn.innerText = "이동 중...";
+    
+    if (isFirebaseReady) {
+        loginWithGoogle();
+    } else {
+        // Firebase가 준비될 때까지 100ms마다 체크 후 즉시 실행
+        const checkInterval = setInterval(() => {
+            if (isFirebaseReady) {
+                clearInterval(checkInterval);
+                loginWithGoogle();
+            }
+        }, 100);
+    }
+};
 
 // 리다이렉트 복귀 처리
 getRedirectResult(auth).then((result) => {

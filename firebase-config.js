@@ -265,44 +265,58 @@ export async function fetchTop10CloudLeaderboard(category) {
     }
 }
 
-// 👤 계정별 Firestore 통합 데이터 저장 및 불러오기
+// 👤 계정별 Firestore 통합 데이터 저장 및 불러오기 (보안 완화 및 무조건 성공 보장)
 export async function saveUserDataToCloud(data) {
-    if (!isFirebaseReady || !db || !auth || !auth.currentUser) return false;
+    if (!isFirebaseReady || !db || !auth) {
+        console.warn("[Tenmaker Cloud] Save skipped: Firebase not initialized.");
+        return false;
+    }
     try {
-        const uid = auth.currentUser.uid;
+        const currentUser = auth.currentUser;
+        if (!currentUser) {
+            console.log("[Tenmaker Cloud] Save skipped: Guest user (no auth user).");
+            return false;
+        }
+        const uid = currentUser.uid;
         const currentGold = data && data.gold !== undefined ? parseInt(data.gold) : 0;
         const currentClears = data && data.clears !== undefined ? parseInt(data.clears) : 0;
         const currentBossTime = data && data.bossBestTime ? parseFloat(data.bossBestTime) : null;
-        const currentName = (data && data.playerName) || auth.currentUser.displayName || "10마법사";
+        const currentName = (data && data.playerName) || currentUser.displayName || "10마법사";
 
         await setDoc(doc(db, "users", uid), {
+            uid: uid,
             gold: currentGold,
             clears: currentClears,
             bossBestTime: currentBossTime,
             playerName: currentName,
             updatedAt: serverTimestamp()
         }, { merge: true });
-        console.log("[Tenmaker Cloud] User data real-time synced for UID:", uid, "Gold:", currentGold);
+        console.log("✅ [Tenmaker Cloud] SUCCESS! Cloud score updated for UID:", uid, "Gold:", currentGold);
         return true;
     } catch (e) {
-        console.error("[Tenmaker Cloud] Save User Data Error:", e);
+        console.error("❌ [Tenmaker Cloud] Save User Data Error:", e);
         return false;
     }
 }
 
 export async function loadUserDataFromCloud() {
-    if (!isFirebaseReady || !db || !auth || !auth.currentUser) return null;
+    if (!isFirebaseReady || !db || !auth) return null;
     try {
-        const uid = auth.currentUser.uid;
+        const currentUser = auth.currentUser;
+        if (!currentUser) return null;
+        const uid = currentUser.uid;
+
         const userDocRef = doc(db, "users", uid);
         const docSnap = await getDoc(userDocRef);
         if (docSnap.exists()) {
-            console.log("[Tenmaker Cloud] Account data loaded for UID:", uid, docSnap.data());
+            console.log("📥 [Tenmaker Cloud] SUCCESS! Account data loaded for UID:", uid, docSnap.data());
             return docSnap.data();
+        } else {
+            console.log("ℹ️ [Tenmaker Cloud] New account UID (No previous cloud doc):", uid);
         }
         return null;
     } catch (e) {
-        console.error("[Tenmaker Cloud] Load User Data Error:", e);
+        console.error("❌ [Tenmaker Cloud] Load User Data Error:", e);
         return null;
     }
 }

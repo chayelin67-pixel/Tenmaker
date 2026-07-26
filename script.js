@@ -123,7 +123,7 @@ const defaultBossTimeRankings = [];
 const defaultGoldRankings = [];
 const defaultClearRankings = [];
 
-// --- UI 갱신 ---
+// --- UI 갱신 (골드 변화 시 Firestore 클라우드 실시간 자동 저장) ---
 function updateUIHeader() {
     try {
         const goldEl = document.getElementById('player-gold');
@@ -137,6 +137,11 @@ function updateUIHeader() {
         localStorage.setItem('m10_gold', gameState.gold);
         localStorage.setItem('m10_clears', gameState.clears);
         localStorage.setItem('m10_player_name', gameState.playerName);
+
+        // ☁️ 로그인 상태라면 골드/점수 변경 시 Firestore 클라우드 즉시 실시간 갱신 저장!
+        if (window.FirebaseService && window.FirebaseService.isReady()) {
+            window.FirebaseService.saveUserDataToCloud(gameState);
+        }
     } catch(e) {
         console.error("[Tenmaker Game] UI Header update error:", e);
     }

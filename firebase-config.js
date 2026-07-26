@@ -270,14 +270,19 @@ export async function saveUserDataToCloud(data) {
     if (!isFirebaseReady || !db || !auth || !auth.currentUser) return false;
     try {
         const uid = auth.currentUser.uid;
+        const currentGold = data && data.gold !== undefined ? parseInt(data.gold) : 0;
+        const currentClears = data && data.clears !== undefined ? parseInt(data.clears) : 0;
+        const currentBossTime = data && data.bossBestTime ? parseFloat(data.bossBestTime) : null;
+        const currentName = (data && data.playerName) || auth.currentUser.displayName || "10마법사";
+
         await setDoc(doc(db, "users", uid), {
-            gold: data.gold || 0,
-            clears: data.clears || 0,
-            bossBestTime: data.bossBestTime || null,
-            playerName: data.playerName || auth.currentUser.displayName || "10마법사",
+            gold: currentGold,
+            clears: currentClears,
+            bossBestTime: currentBossTime,
+            playerName: currentName,
             updatedAt: serverTimestamp()
         }, { merge: true });
-        console.log("[Tenmaker Cloud] Account data synced for UID:", uid);
+        console.log("[Tenmaker Cloud] User data real-time synced for UID:", uid, "Gold:", currentGold);
         return true;
     } catch (e) {
         console.error("[Tenmaker Cloud] Save User Data Error:", e);

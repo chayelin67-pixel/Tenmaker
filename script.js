@@ -166,11 +166,15 @@ function setupEventListeners() {
     const btnLogout = document.getElementById('btn-logout');
 
     if (btnGoogle) {
-        btnGoogle.addEventListener('click', () => {
-            if (window.FirebaseService) {
-                window.FirebaseService.loginWithGoogle().catch(err => console.log("Login error or canceled:", err));
+        btnGoogle.onclick = (e) => {
+            if (e) {
+                e.preventDefault();
+                e.stopPropagation();
             }
-        });
+            if (window.FirebaseService && window.FirebaseService.loginWithGoogle) {
+                window.FirebaseService.loginWithGoogle();
+            }
+        };
     }
 
     if (btnLogout) {

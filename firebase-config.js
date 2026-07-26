@@ -89,10 +89,6 @@ export function loginWithGoogle() {
         });
 }
 
-window.handleGoogleLogin = function() {
-    loginWithGoogle().catch(err => console.log("Google Login process ends:", err));
-};
-
 export function logoutUser() {
     if (!isFirebaseReady) return Promise.resolve();
     return signOut(auth);

@@ -227,11 +227,23 @@ function quitGame() {
     showView('lobby-view');
 }
 
-// 미니게임 시작 공통 트리거
+// 미니게임 시작 공통 트리거 (기존 타이머 완전 청소 및 중복 방지)
 function startGame(gameId) {
     try {
         console.log("[Tenmaker Game] Starting game ID:", gameId);
         playSound('click');
+
+        // 이전 타이머 및 애니메이션 완전 강제 청소
+        if (gameTimer) {
+            clearInterval(gameTimer);
+            gameTimer = null;
+        }
+        if (g2AnimationId) {
+            cancelAnimationFrame(g2AnimationId);
+            g2AnimationId = null;
+        }
+        isEndingGame = false;
+
         if (gameId === 1) startGame1();
         else if (gameId === 2) startGame2();
         else if (gameId === 3) startGame3();
@@ -244,6 +256,7 @@ function startGame(gameId) {
 // 미니게임 1: 스피드 짝맞추기 (25초)
 // ==========================================
 function startGame1() {
+    if (gameTimer) { clearInterval(gameTimer); gameTimer = null; }
     currentActiveGame = 1;
     gameTimeLeft = 25;
     currentGameScore = 0;
@@ -336,6 +349,7 @@ function replaceG1Tiles(el1, el2) {
 // 미니게임 2: 10 버블 팝 (30초)
 // ==========================================
 function startGame2() {
+    if (gameTimer) { clearInterval(gameTimer); gameTimer = null; }
     currentActiveGame = 2;
     gameTimeLeft = 30;
     currentGameScore = 0;
@@ -436,6 +450,7 @@ function onG2BubbleClick(bObj, stage) {
 // 미니게임 3: 초스피드 10 퀴즈 (20초)
 // ==========================================
 function startGame3() {
+    if (gameTimer) { clearInterval(gameTimer); gameTimer = null; }
     currentActiveGame = 3;
     gameTimeLeft = 20;
     currentGameScore = 0;

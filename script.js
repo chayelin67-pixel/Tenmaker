@@ -161,6 +161,28 @@ function setupEventListeners() {
     });
 
     document.getElementById('btn-hall-of-fame').addEventListener('click', openHallOfFame);
+
+    // 🎮 미니게임 시작 버튼 바인딩 (인라인 제거로 100% 작동 보장)
+    document.querySelectorAll('.start-game-btn').forEach(btn => {
+        btn.addEventListener('click', (e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            const gId = parseInt(btn.dataset.game || btn.getAttribute('data-game'));
+            console.log("Start game clicked for:", gId);
+            startGame(gId);
+        });
+    });
+
+    // 👹 보스전 도전 버튼 바인딩
+    const bossBtn = document.getElementById('btn-start-boss');
+    if (bossBtn) {
+        bossBtn.addEventListener('click', (e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            console.log("Start boss clicked!");
+            startBossBattle();
+        });
+    }
 }
 
 // 뷰 전환 함수 (100% 강제 활성화 보장)

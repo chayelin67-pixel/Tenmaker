@@ -505,10 +505,21 @@ function generateG3Question() {
     });
 }
 
+let isEndingGame = false;
+
 // 미니게임 종결 후 보상
 function endMiniGame(gameId) {
-    clearInterval(gameTimer);
-    if (g2AnimationId) cancelAnimationFrame(g2AnimationId);
+    if (isEndingGame) return;
+    isEndingGame = true;
+
+    if (gameTimer) {
+        clearInterval(gameTimer);
+        gameTimer = null;
+    }
+    if (g2AnimationId) {
+        cancelAnimationFrame(g2AnimationId);
+        g2AnimationId = null;
+    }
 
     const earnedGold = Math.floor(currentGameScore * 1.5);
     gameState.gold += earnedGold;
@@ -659,6 +670,7 @@ function finishBossBattle() {
 }
 
 function closeResultModal() {
+    isEndingGame = false;
     document.getElementById('result-modal').classList.remove('active');
     quitGame();
 }

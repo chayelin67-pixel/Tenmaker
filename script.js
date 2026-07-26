@@ -23,14 +23,15 @@ if (!window.handleGoogleLogin) {
     };
 }
 
-// --- 게임 상태 변수 ---
-let gameState = {
+// --- 게임 상태 변수 (window.gameState 전역 최우선 선언) ---
+window.gameState = {
     playerName: localStorage.getItem('m10_player_name') || '10마법사',
     gold: parseInt(localStorage.getItem('m10_gold')) || 100, // 기본 100골드 지급
     clears: parseInt(localStorage.getItem('m10_clears')) || 0,
     bossBestTime: parseFloat(localStorage.getItem('m10_boss_best')) || null,
     soundEnabled: true
 };
+let gameState = window.gameState;
 
 // 미니게임 상태
 let currentActiveGame = null;

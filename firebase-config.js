@@ -71,9 +71,15 @@ function applyUserToUI(user) {
             if (iconEl) iconEl.style.display = 'none';
         }
         if (user.displayName && nameInput) {
-            nameInput.value = user.displayName;
-            if (window.gameState) window.gameState.playerName = user.displayName;
-            localStorage.setItem('m10_player_name', user.displayName);
+            try {
+                nameInput.value = user.displayName;
+                if (window.gameState) {
+                    window.gameState.playerName = user.displayName;
+                }
+                localStorage.setItem('m10_player_name', user.displayName);
+            } catch(e) {
+                console.log("Sync error:", e);
+            }
         }
     } else {
         if (btnLogin) {

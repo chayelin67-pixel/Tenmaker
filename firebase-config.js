@@ -26,27 +26,23 @@ import {
 const env = window.__FIREBASE_ENV__ || {};
 
 const firebaseConfig = {
-    apiKey: env.apiKey || "AIzaSyCSUWNWUOf3fSTALAhKVJYOh5K60d-MyNo",
-    authDomain: env.authDomain || "tenmaker-b5cfb.firebaseapp.com",
-    projectId: env.projectId || "tenmaker-b5cfb",
-    storageBucket: env.storageBucket || "tenmaker-b5cfb.firebasestorage.app",
-    messagingSenderId: env.messagingSenderId || "426782247861",
-    appId: env.appId || "1:426782247861:web:f46014348187d4d39667fc"
+    apiKey: (env.apiKey && !env.apiKey.includes("%")) ? env.apiKey : "AIzaSyCSUWNWUOf3fSTALAhKVJYOh5K60d-MyNo",
+    authDomain: (env.authDomain && !env.authDomain.includes("%")) ? env.authDomain : "tenmaker-b5cfb.firebaseapp.com",
+    projectId: (env.projectId && !env.projectId.includes("%")) ? env.projectId : "tenmaker-b5cfb",
+    storageBucket: (env.storageBucket && !env.storageBucket.includes("%")) ? env.storageBucket : "tenmaker-b5cfb.firebasestorage.app",
+    messagingSenderId: (env.messagingSenderId && !env.messagingSenderId.includes("%")) ? env.messagingSenderId : "426782247861",
+    appId: (env.appId && !env.appId.includes("%")) ? env.appId : "1:426782247861:web:f46014348187d4d39667fc"
 };
 
 let app, auth, db;
 let isFirebaseReady = false;
 
 try {
-    if (firebaseConfig.apiKey && firebaseConfig.apiKey !== "YOUR_FIREBASE_API_KEY") {
-        app = initializeApp(firebaseConfig);
-        auth = getAuth(app);
-        db = getFirestore(app);
-        isFirebaseReady = true;
-        console.log("🔥 Firebase 보안 연동 성공!");
-    } else {
-        console.warn("⚠️ Firebase 환경변수가 설정되지 않아 로컬 안전 모드로 작동합니다.");
-    }
+    app = initializeApp(firebaseConfig);
+    auth = getAuth(app);
+    db = getFirestore(app);
+    isFirebaseReady = true;
+    console.log("🔥 Firebase 연동 성공!");
 } catch (e) {
     console.error("Firebase Initialization Error:", e);
 }
@@ -54,11 +50,21 @@ try {
 // --- 로그인 / 인증 서비스 ---
 export function loginWithGoogle() {
     if (!isFirebaseReady) {
-        alert("Firebase 키 설정이 완료되지 않았습니다. 안내에 따라 1단계를 진행해 주세요!");
+        alert("Firebase 설정이 아직 준비되지 않았습니다.");
         return Promise.reject("Firebase not ready");
     }
     const provider = new GoogleAuthProvider();
-    return signInWithPopup(auth, provider);
+    return signInWithPopup(auth, provider).catch(err => {
+        console.error("Google Login Error:", err);
+        if (err.code === 'auth/unauthorized-domain') {
+            alert(`[도메인 승인 필요]\n현재 접속한 웹 주소(${window.location.hostname})가 Firebase 콘솔의 Authorized Domains에 추가되어야 로그인할 수 있습니다.`);
+        } else if (err.code === 'auth/popup-blocked') {
+            alert("브라우저에서 팝업이 차단되었습니다. 팝업 차단을 해제하고 다시 시도해 주세요.");
+        } else if (err.code !== 'auth/popup-closed-by-user') {
+            alert(`로그인 오류 (${err.code}): ${err.message}`);
+        }
+        throw err;
+    });
 }
 
 export function logoutUser() {

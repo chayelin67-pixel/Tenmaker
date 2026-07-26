@@ -1,5 +1,5 @@
 // ===================================================
-// Firebase Config & Service Helper (Secure Environment)
+// Firebase & Auth Master Manager Module
 // ===================================================
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
 import { 
@@ -18,9 +18,7 @@ import {
     query, 
     orderBy, 
     limit, 
-    serverTimestamp,
-    doc,
-    setDoc
+    serverTimestamp 
 } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
 
 // 환경변수 또는 발급받은 Firebase 키 적용
@@ -43,99 +41,103 @@ try {
     auth = getAuth(app);
     db = getFirestore(app);
     isFirebaseReady = true;
-    console.log("🔥 Firebase 연동 성공!");
+    console.log("🔥 Firebase Master Module Ready!");
 } catch (e) {
     console.error("Firebase Initialization Error:", e);
 }
 
-// --- 로그인 / 인증 서비스 ---
-let isLoggingIn = false;
-
-// 모듈 로딩 시점 상관없이 100% 동작하는 전역 로그인 핸들러
-window.doGoogleLogin = function() {
-    console.log("doGoogleLogin triggered!");
-    const btn = document.getElementById('btn-google-login');
-    if (btn) {
-        btn.style.opacity = "0.5";
-        btn.innerText = "로그인 중...";
-    }
-    
-    if (isFirebaseReady) {
-        loginWithGoogle();
-    } else {
-        const checkInterval = setInterval(() => {
-            if (isFirebaseReady) {
-                clearInterval(checkInterval);
-                loginWithGoogle();
-            }
-        }, 100);
-    }
-};
-
-export function loginWithGoogle() {
-    if (!isFirebaseReady) {
-        alert("Firebase 설정이 아직 준비되지 않았습니다. 잠시 후 다시 시도해 주세요.");
-        return Promise.reject("Firebase not ready");
-    }
-
-    const provider = new GoogleAuthProvider();
-    return signInWithRedirect(auth, provider).catch(err => {
-        console.error("Google Login Redirect Error:", err);
-        const btn = document.getElementById('btn-google-login');
-        if (btn) {
-            btn.style.opacity = "1";
-            btn.innerText = "로그인";
-        }
-        if (err.code === 'auth/unauthorized-domain') {
-            alert(`[도메인 승인 필요]\n현재 접속한 주소(${window.location.hostname})가 Firebase 콘솔의 Authorized Domains에 추가되어야 합니다.`);
-        } else {
-            alert(`로그인 오류 (${err.code}): ${err.message}`);
-        }
-    });
-}
-
-// 리다이렉트 복귀 및 인증 상태 관찰자
-getRedirectResult(auth).then((result) => {
-    if (result && result.user) {
-        console.log("Redirect login successful:", result.user);
-    }
-}).catch((error) => {
-    console.error("Redirect Result Error:", error);
-});
-
-export function listenAuthState(callback) {
-    if (!isFirebaseReady) {
-        const check = setInterval(() => {
-            if (isFirebaseReady) {
-                clearInterval(check);
-                onAuthStateChanged(auth, callback);
-            }
-        }, 100);
+// 100% 확실하게 구글 로그인 실행하는 핵심 함수
+export function executeGoogleLogin() {
+    console.log("--> executeGoogleLogin triggered!");
+    if (!isFirebaseReady || !auth) {
+        alert("Firebase가 아직 로딩 중입니다. 1~2초 후 다시 눌러주세요.");
         return;
     }
-    onAuthStateChanged(auth, callback);
-}
-
-export function logoutUser() {
-    if (!isFirebaseReady) return Promise.resolve();
-    return signOut(auth);
-}
-
-export function listenAuthState(callback) {
-    if (!isFirebaseReady) return;
-    onAuthStateChanged(auth, (user) => {
-        callback(user);
+    const provider = new GoogleAuthProvider();
+    signInWithRedirect(auth, provider).catch((err) => {
+        console.error("Redirect Login Error:", err);
+        alert(`로그인 오류 (${err.code}): ${err.message}`);
     });
 }
 
-// --- Firestore 랭킹 DB 서비스 ---
+// 로그아웃
+export function executeLogout() {
+    if (auth) signOut(auth);
+}
+
+// 리다이렉트 성공 감지 및 Auth 상태 구독
+if (auth) {
+    getRedirectResult(auth).then((result) => {
+        if (result && result.user) {
+            console.log("Redirect login result user:", result.user.displayName);
+        }
+    }).catch(err => console.error("Redirect Error:", err));
+
+    onAuthStateChanged(auth, (user) => {
+        const btnLogin = document.getElementById('btn-google-login');
+        const btnLogout = document.getElementById('btn-logout');
+        const imgEl = document.getElementById('user-photo');
+        const iconEl = document.getElementById('user-avatar-icon');
+        const nameInput = document.getElementById('player-name-input');
+
+        if (user) {
+            console.log("User authenticated:", user.displayName || user.email);
+            if (btnLogin) btnLogin.style.display = 'none';
+            if (btnLogout) btnLogout.style.display = 'inline-flex';
+
+            if (user.photoURL && imgEl) {
+                imgEl.src = user.photoURL;
+                imgEl.classList.remove('hidden');
+                imgEl.style.display = 'inline-block';
+                if (iconEl) iconEl.style.display = 'none';
+            }
+            if (user.displayName && nameInput) {
+                nameInput.value = user.displayName;
+                if (window.gameState) window.gameState.playerName = user.displayName;
+                localStorage.setItem('m10_player_name', user.displayName);
+            }
+        } else {
+            console.log("User signed out.");
+            if (btnLogin) btnLogin.style.display = 'inline-flex';
+            if (btnLogout) btnLogout.style.display = 'none';
+            if (imgEl) imgEl.style.display = 'none';
+            if (iconEl) iconEl.style.display = 'inline-block';
+        }
+    });
+}
+
+// DOM이 완료되면 로그인/로그아웃 버튼에 이벤트를 직접 부착
+document.addEventListener('DOMContentLoaded', () => {
+    const btnLogin = document.getElementById('btn-google-login');
+    const btnLogout = document.getElementById('btn-logout');
+
+    if (btnLogin) {
+        btnLogin.addEventListener('click', (e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            console.log("Login button clicked!");
+            btnLogin.innerText = "이동 중...";
+            btnLogin.style.opacity = "0.6";
+            executeGoogleLogin();
+        });
+    }
+
+    if (btnLogout) {
+        btnLogout.addEventListener('click', (e) => {
+            e.preventDefault();
+            executeLogout();
+        });
+    }
+});
+
+// Firestore 서비스 exports
 export async function saveBossTimeRecordToCloud(playerName, timeSec) {
-    if (!isFirebaseReady) return false;
+    if (!isFirebaseReady || !db) return false;
     try {
         await addDoc(collection(db, "lb_boss_time"), {
             name: playerName,
             time: timeSec,
-            uid: auth.currentUser ? auth.currentUser.uid : "anonymous",
+            uid: auth && auth.currentUser ? auth.currentUser.uid : "anonymous",
             createdAt: serverTimestamp()
         });
         return true;
@@ -146,12 +148,12 @@ export async function saveBossTimeRecordToCloud(playerName, timeSec) {
 }
 
 export async function saveGoldRecordToCloud(playerName, goldAmount) {
-    if (!isFirebaseReady) return false;
+    if (!isFirebaseReady || !db) return false;
     try {
         await addDoc(collection(db, "lb_gold"), {
             name: playerName,
             gold: goldAmount,
-            uid: auth.currentUser ? auth.currentUser.uid : "anonymous",
+            uid: auth && auth.currentUser ? auth.currentUser.uid : "anonymous",
             createdAt: serverTimestamp()
         });
         return true;
@@ -162,12 +164,12 @@ export async function saveGoldRecordToCloud(playerName, goldAmount) {
 }
 
 export async function saveClearRecordToCloud(playerName, totalClears) {
-    if (!isFirebaseReady) return false;
+    if (!isFirebaseReady || !db) return false;
     try {
         await addDoc(collection(db, "lb_clears"), {
             name: playerName,
             clears: totalClears,
-            uid: auth.currentUser ? auth.currentUser.uid : "anonymous",
+            uid: auth && auth.currentUser ? auth.currentUser.uid : "anonymous",
             createdAt: serverTimestamp()
         });
         return true;
@@ -178,7 +180,7 @@ export async function saveClearRecordToCloud(playerName, totalClears) {
 }
 
 export async function fetchTop10CloudLeaderboard(category) {
-    if (!isFirebaseReady) return null;
+    if (!isFirebaseReady || !db) return null;
     try {
         let q;
         if (category === 'boss-time') {
@@ -203,9 +205,8 @@ export async function fetchTop10CloudLeaderboard(category) {
 
 window.FirebaseService = {
     isReady: () => isFirebaseReady,
-    loginWithGoogle,
-    logoutUser,
-    listenAuthState,
+    executeGoogleLogin,
+    executeLogout,
     saveBossTimeRecordToCloud,
     saveGoldRecordToCloud,
     saveClearRecordToCloud,

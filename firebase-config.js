@@ -5,7 +5,8 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebas
 import { 
     getAuth, 
     GoogleAuthProvider, 
-    signInWithPopup, 
+    signInWithRedirect,
+    getRedirectResult, 
     signOut, 
     onAuthStateChanged 
 } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
@@ -56,38 +57,26 @@ export function loginWithGoogle() {
         return Promise.reject("Firebase not ready");
     }
 
-    // 이미 로그인 진행 중이면 중복 요청 방지
-    if (isLoggingIn) {
-        return Promise.resolve();
-    }
-
-    isLoggingIn = true;
     const provider = new GoogleAuthProvider();
-
-    return signInWithPopup(auth, provider)
-        .then((result) => {
-            isLoggingIn = false;
-            return result;
-        })
-        .catch(err => {
-            isLoggingIn = false;
-            console.error("Google Login Error:", err);
-            
-            // 중복 클릭으로 이전 팝업이 취소된 경우나 사용자가 창을 닫은 경우는 경고창 생략
-            if (err.code === 'auth/cancelled-popup-request' || err.code === 'auth/popup-closed-by-user') {
-                return;
-            }
-
-            if (err.code === 'auth/unauthorized-domain') {
-                alert(`[도메인 승인 필요]\n현재 접속한 주소(${window.location.hostname})가 Firebase 콘솔에 승인되지 않았습니다.\n\nFirebase 콘솔 -> Authentication -> 설정 -> 승인된 도메인에 '${window.location.hostname}'을 추가해주세요!`);
-            } else if (err.code === 'auth/popup-blocked') {
-                alert("브라우저 팝업이 차단되었습니다. 상단 주소창 옆에서 팝업 허용을 눌러주세요.");
-            } else {
-                alert(`로그인 오류 (${err.code}): ${err.message}`);
-            }
-            throw err;
-        });
+    // 팝업 대신 안전한 페이지 이동(Redirect) 방식으로 로그인 수행
+    return signInWithRedirect(auth, provider).catch(err => {
+        console.error("Google Login Redirect Error:", err);
+        if (err.code === 'auth/unauthorized-domain') {
+            alert(`[도메인 승인 필요]\n현재 접속한 주소(${window.location.hostname})가 Firebase 콘솔에 승인되지 않았습니다.\n\nFirebase 콘솔 -> Authentication -> 설정 -> 승인된 도메인에 '${window.location.hostname}'을 추가해주세요!`);
+        } else {
+            alert(`로그인 이동 오류 (${err.code}): ${err.message}`);
+        }
+    });
 }
+
+// 리다이렉트 복귀 처리
+getRedirectResult(auth).then((result) => {
+    if (result && result.user) {
+        console.log("Redirect login successful:", result.user);
+    }
+}).catch((error) => {
+    console.error("Redirect Result Error:", error);
+});
 
 export function logoutUser() {
     if (!isFirebaseReady) return Promise.resolve();

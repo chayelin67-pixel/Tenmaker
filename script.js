@@ -169,7 +169,6 @@ function setupEventListeners() {
         btnGoogle.onclick = (e) => {
             if (e) {
                 e.preventDefault();
-                e.stopPropagation();
             }
             if (window.FirebaseService && window.FirebaseService.loginWithGoogle) {
                 window.FirebaseService.loginWithGoogle();

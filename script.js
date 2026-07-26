@@ -684,14 +684,27 @@ function saveToLeaderboards(earnedGold) {
 }
 
 async function openHallOfFame() {
-    playSound('click');
-    document.getElementById('hall-modal').classList.add('active');
+    try {
+        if (typeof playSound === 'function') playSound('click');
+    } catch(e) {}
+    const modal = document.getElementById('hall-modal');
+    if (modal) {
+        modal.classList.add('active');
+        modal.style.display = 'flex';
+    }
     await renderHallOfFame();
 }
 
 function closeHallOfFame() {
-    document.getElementById('hall-modal').classList.remove('active');
+    const modal = document.getElementById('hall-modal');
+    if (modal) {
+        modal.classList.remove('active');
+        modal.style.display = 'none';
+    }
 }
+
+window.openHallOfFame = openHallOfFame;
+window.closeHallOfFame = closeHallOfFame;
 
 function switchHallTab(tabName) {
     playSound('click');

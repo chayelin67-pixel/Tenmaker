@@ -55,8 +55,14 @@ function applyUserToUI(user) {
 
     if (user) {
         console.log("Applying user UI:", user.displayName);
-        if (btnLogin) btnLogin.style.display = 'none';
-        if (btnLogout) btnLogout.style.display = 'inline-flex';
+        if (btnLogin) {
+            btnLogin.style.display = 'none';
+            btnLogin.classList.add('hidden');
+        }
+        if (btnLogout) {
+            btnLogout.style.display = 'inline-flex';
+            btnLogout.classList.remove('hidden');
+        }
 
         if (user.photoURL && imgEl) {
             imgEl.src = user.photoURL;
@@ -70,8 +76,14 @@ function applyUserToUI(user) {
             localStorage.setItem('m10_player_name', user.displayName);
         }
     } else {
-        if (btnLogin) btnLogin.style.display = 'inline-flex';
-        if (btnLogout) btnLogout.style.display = 'none';
+        if (btnLogin) {
+            btnLogin.style.display = 'inline-flex';
+            btnLogin.classList.remove('hidden');
+        }
+        if (btnLogout) {
+            btnLogout.style.display = 'none';
+            btnLogout.classList.add('hidden');
+        }
         if (imgEl) imgEl.style.display = 'none';
         if (iconEl) iconEl.style.display = 'inline-block';
     }

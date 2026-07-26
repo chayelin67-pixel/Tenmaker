@@ -22,16 +22,16 @@ import {
     setDoc
 } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
 
-// 환경변수 주입 또는 기본 객체 설정
+// 환경변수 또는 발급받은 Firebase 키 적용
 const env = window.__FIREBASE_ENV__ || {};
 
 const firebaseConfig = {
-    apiKey: env.apiKey || "YOUR_FIREBASE_API_KEY",
-    authDomain: env.authDomain || "YOUR_PROJECT_ID.firebaseapp.com",
-    projectId: env.projectId || "YOUR_PROJECT_ID",
-    storageBucket: env.storageBucket || "YOUR_PROJECT_ID.appspot.com",
-    messagingSenderId: env.messagingSenderId || "YOUR_MESSAGING_SENDER_ID",
-    appId: env.appId || "YOUR_APP_ID"
+    apiKey: env.apiKey || "AIzaSyCSUWNWUOf3fSTALAhKVJYOh5K60d-MyNo",
+    authDomain: env.authDomain || "tenmaker-b5cfb.firebaseapp.com",
+    projectId: env.projectId || "tenmaker-b5cfb",
+    storageBucket: env.storageBucket || "tenmaker-b5cfb.firebasestorage.app",
+    messagingSenderId: env.messagingSenderId || "426782247861",
+    appId: env.appId || "1:426782247861:web:f46014348187d4d39667fc"
 };
 
 let app, auth, db;

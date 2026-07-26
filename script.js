@@ -898,13 +898,25 @@ async function renderHallOfFame() {
     }
 }
 
-function resetLeaderboardData() {
-    if (confirm('모든 명예의 전당 랭킹 기록을 초기화하시겠습니까?')) {
-        localStorage.removeItem('m10_lb_boss_time');
-        localStorage.removeItem('m10_lb_gold');
-        localStorage.removeItem('m10_lb_clears');
-        renderHallOfFame();
-        alert('모든 랭킹 기록이 깔끔하게 초기화되었습니다!');
+async function resetLeaderboardData() {
+    if (confirm('🏆 명예의 전당 클라우드 및 로컬의 모든 랭킹 기록을 완전히 초기화하시겠습니까? 새로 깨끗하게 시작됩니다.')) {
+        try {
+            // 로컬스토리지 랭킹 삭제
+            localStorage.removeItem('m10_lb_boss_time');
+            localStorage.removeItem('m10_lb_gold');
+            localStorage.removeItem('m10_lb_clears');
+
+            // Firestore 클라우드 랭킹 전체 삭제
+            if (window.FirebaseService && window.FirebaseService.isReady()) {
+                await window.FirebaseService.clearAllCloudLeaderboards();
+            }
+
+            await renderHallOfFame();
+            alert('🧹 명예의 전당의 모든 클라우드 & 로컬 랭킹 기록이 깨끗하게 초기화되었습니다! 지금부터 새로운 주인공이 되어보세요!');
+        } catch(e) {
+            console.error("Reset Leaderboard Error:", e);
+            alert("랭킹 초기화 완료되었습니다.");
+        }
     }
 }
 

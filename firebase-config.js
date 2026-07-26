@@ -20,7 +20,8 @@ import {
     serverTimestamp,
     doc,
     setDoc,
-    getDoc
+    getDoc,
+    deleteDoc
 } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
 
 console.log("[Tenmaker Firebase] Script loaded.");
@@ -321,6 +322,27 @@ export async function loadUserDataFromCloud() {
     }
 }
 
+// 🧹 명예의 전당 클라우드 랭킹 전체 삭제 초기화
+export async function clearAllCloudLeaderboards() {
+    if (!isFirebaseReady || !db) return false;
+    try {
+        const collectionsToClear = ["lb_boss_time", "lb_gold", "lb_clears"];
+        for (const colName of collectionsToClear) {
+            const qSnap = await getDocs(collection(db, colName));
+            const deletePromises = [];
+            qSnap.forEach((docSnap) => {
+                deletePromises.push(deleteDoc(doc(db, colName, docSnap.id)));
+            });
+            await Promise.all(deletePromises);
+            console.log(`[Tenmaker Cloud] Cleared collection: ${colName}`);
+        }
+        return true;
+    } catch (e) {
+        console.error("[Tenmaker Cloud] Clear Leaderboards Error:", e);
+        return false;
+    }
+}
+
 window.FirebaseService = {
     isReady: () => isFirebaseReady,
     executeGoogleLogin,
@@ -330,5 +352,6 @@ window.FirebaseService = {
     saveBossTimeRecordToCloud,
     saveGoldRecordToCloud,
     saveClearRecordToCloud,
-    fetchTop10CloudLeaderboard
+    fetchTop10CloudLeaderboard,
+    clearAllCloudLeaderboards
 };

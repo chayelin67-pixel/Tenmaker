@@ -607,13 +607,13 @@ function finishBossBattle() {
         localStorage.setItem('m10_boss_best', finalTime);
     }
 
-    // 랭킹 저장
+    // 랭킹 저장 (Local & Cloud Firestore)
     saveBossTimeLeaderboard(finalTime);
 
     // 결과 창
     document.getElementById('result-title').textContent = '👹 보스 퇴치 성공!';
     document.getElementById('result-icon').textContent = '👑';
-    document.getElementById('result-desc').textContent = `10의 마왕 텐크라켄을 무찔렀습니다! 명예의 전당 기록에 업로드되었습니다.`;
+    document.getElementById('result-desc').textContent = `10의 마왕 텐크라켄을 무찔렀습니다! ${gameState.playerName}님의 기록이 명예의 전당 클라우드에 업로드되었습니다.`;
     document.getElementById('result-gold').textContent = rewardGold;
     document.getElementById('result-boss-time').textContent = finalTime.toFixed(2);
     document.getElementById('boss-time-result-box').classList.remove('hidden');

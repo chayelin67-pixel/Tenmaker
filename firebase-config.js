@@ -139,16 +139,19 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 });
 
-// Firestore 서비스 exports
+// Firestore 서비스 exports (구글 유저 UID 및 프로필 포함 저장)
 export async function saveBossTimeRecordToCloud(playerName, timeSec) {
     if (!isFirebaseReady || !db) return false;
     try {
+        const currentUser = auth ? auth.currentUser : null;
         await addDoc(collection(db, "lb_boss_time"), {
-            name: playerName,
-            time: timeSec,
-            uid: auth && auth.currentUser ? auth.currentUser.uid : "anonymous",
+            uid: currentUser ? currentUser.uid : "anonymous",
+            name: playerName || (currentUser ? currentUser.displayName : "마법사"),
+            photoURL: currentUser ? currentUser.photoURL : "",
+            time: parseFloat(timeSec),
             createdAt: serverTimestamp()
         });
+        console.log("🔥 Cloud Boss Time Record Saved!");
         return true;
     } catch (e) {
         console.error("Firestore Save Error (Boss Time):", e);
@@ -159,12 +162,15 @@ export async function saveBossTimeRecordToCloud(playerName, timeSec) {
 export async function saveGoldRecordToCloud(playerName, goldAmount) {
     if (!isFirebaseReady || !db) return false;
     try {
+        const currentUser = auth ? auth.currentUser : null;
         await addDoc(collection(db, "lb_gold"), {
-            name: playerName,
-            gold: goldAmount,
-            uid: auth && auth.currentUser ? auth.currentUser.uid : "anonymous",
+            uid: currentUser ? currentUser.uid : "anonymous",
+            name: playerName || (currentUser ? currentUser.displayName : "마법사"),
+            photoURL: currentUser ? currentUser.photoURL : "",
+            gold: parseInt(goldAmount),
             createdAt: serverTimestamp()
         });
+        console.log("🔥 Cloud Gold Record Saved!");
         return true;
     } catch (e) {
         console.error("Firestore Save Error (Gold):", e);
@@ -175,12 +181,15 @@ export async function saveGoldRecordToCloud(playerName, goldAmount) {
 export async function saveClearRecordToCloud(playerName, totalClears) {
     if (!isFirebaseReady || !db) return false;
     try {
+        const currentUser = auth ? auth.currentUser : null;
         await addDoc(collection(db, "lb_clears"), {
-            name: playerName,
-            clears: totalClears,
-            uid: auth && auth.currentUser ? auth.currentUser.uid : "anonymous",
+            uid: currentUser ? currentUser.uid : "anonymous",
+            name: playerName || (currentUser ? currentUser.displayName : "마법사"),
+            photoURL: currentUser ? currentUser.photoURL : "",
+            clears: parseInt(totalClears),
             createdAt: serverTimestamp()
         });
+        console.log("🔥 Cloud Clears Record Saved!");
         return true;
     } catch (e) {
         console.error("Firestore Save Error (Clears):", e);

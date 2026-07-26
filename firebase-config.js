@@ -17,7 +17,10 @@ import {
     query, 
     orderBy, 
     limit, 
-    serverTimestamp 
+    serverTimestamp,
+    doc,
+    setDoc,
+    getDoc
 } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
 
 console.log("[Tenmaker Firebase] Script loaded.");
@@ -58,7 +61,7 @@ let isFirebaseReady = false;
 })();
 
 // UI 안전 업데이트 함수 (Non-blocking)
-function applyUserToUI(user) {
+async function applyUserToUI(user) {
     try {
         const btnLogin = document.getElementById('btn-google-login');
         const btnLogout = document.getElementById('btn-logout');
@@ -86,10 +89,18 @@ function applyUserToUI(user) {
             if (user.displayName && nameInput) {
                 nameInput.value = user.displayName;
                 if (window.gameState) window.gameState.playerName = user.displayName;
-                localStorage.setItem('m10_player_name', user.displayName);
+            }
+
+            // 📥 로그인한 유저 계정 전용 Firestore 클라우드 데이터 불러오기
+            const cloudData = await loadUserDataFromCloud();
+            if (cloudData && window.gameState) {
+                window.gameState.gold = cloudData.gold !== undefined ? cloudData.gold : 0;
+                window.gameState.clears = cloudData.clears !== undefined ? cloudData.clears : 0;
+                window.gameState.bossBestTime = cloudData.bossBestTime || null;
+                if (typeof window.updateUIHeader === 'function') window.updateUIHeader();
             }
         } else {
-            console.log("[Tenmaker Auth] User signed out or guest mode.");
+            console.log("[Tenmaker Auth] User signed out -> Resetting score and UI.");
             if (btnLogin) {
                 btnLogin.style.display = 'inline-flex';
                 btnLogin.classList.remove('hidden');
@@ -100,6 +111,11 @@ function applyUserToUI(user) {
             }
             if (imgEl) imgEl.style.display = 'none';
             if (iconEl) iconEl.style.display = 'inline-block';
+
+            // 📤 로그아웃 시 게스트 초기 상태로 점수/골드 깨끗하게 리셋!
+            if (typeof window.resetGameStateToDefault === 'function') {
+                window.resetGameStateToDefault();
+            }
         }
     } catch (err) {
         console.error("[Tenmaker Auth] Error updating UI:", err);
@@ -241,10 +257,49 @@ export async function fetchTop10CloudLeaderboard(category) {
     }
 }
 
+// 👤 계정별 Firestore 통합 데이터 저장 및 불러오기
+export async function saveUserDataToCloud(data) {
+    if (!isFirebaseReady || !db || !auth || !auth.currentUser) return false;
+    try {
+        const uid = auth.currentUser.uid;
+        await setDoc(doc(db, "users", uid), {
+            gold: data.gold || 0,
+            clears: data.clears || 0,
+            bossBestTime: data.bossBestTime || null,
+            playerName: data.playerName || auth.currentUser.displayName || "10마법사",
+            updatedAt: serverTimestamp()
+        }, { merge: true });
+        console.log("[Tenmaker Cloud] Account data synced for UID:", uid);
+        return true;
+    } catch (e) {
+        console.error("[Tenmaker Cloud] Save User Data Error:", e);
+        return false;
+    }
+}
+
+export async function loadUserDataFromCloud() {
+    if (!isFirebaseReady || !db || !auth || !auth.currentUser) return null;
+    try {
+        const uid = auth.currentUser.uid;
+        const userDocRef = doc(db, "users", uid);
+        const docSnap = await getDoc(userDocRef);
+        if (docSnap.exists()) {
+            console.log("[Tenmaker Cloud] Account data loaded for UID:", uid, docSnap.data());
+            return docSnap.data();
+        }
+        return null;
+    } catch (e) {
+        console.error("[Tenmaker Cloud] Load User Data Error:", e);
+        return null;
+    }
+}
+
 window.FirebaseService = {
     isReady: () => isFirebaseReady,
     executeGoogleLogin,
     executeLogout,
+    saveUserDataToCloud,
+    loadUserDataFromCloud,
     saveBossTimeRecordToCloud,
     saveGoldRecordToCloud,
     saveClearRecordToCloud,

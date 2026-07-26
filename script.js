@@ -703,6 +703,21 @@ function getLeaderboard(key, defaultData) {
     }
 }
 
+function resetGameStateToDefault() {
+    console.log("[Tenmaker Game] Resetting game state to default (logged out).");
+    gameState.gold = 0;
+    gameState.clears = 0;
+    gameState.bossBestTime = null;
+    gameState.playerName = '10마법사';
+    localStorage.removeItem('m10_gold');
+    localStorage.removeItem('m10_clears');
+    localStorage.setItem('m10_player_name', '10마법사');
+    updateUIHeader();
+}
+
+window.resetGameStateToDefault = resetGameStateToDefault;
+window.updateUIHeader = updateUIHeader;
+
 function saveBossTimeLeaderboard(time) {
     let list = getLeaderboard('m10_lb_boss_time', defaultBossTimeRankings);
     list.push({ name: gameState.playerName, time: time });
@@ -712,6 +727,7 @@ function saveBossTimeLeaderboard(time) {
 
     if (window.FirebaseService && window.FirebaseService.isReady()) {
         window.FirebaseService.saveBossTimeRecordToCloud(gameState.playerName, time);
+        window.FirebaseService.saveUserDataToCloud(gameState);
     }
 }
 
@@ -736,9 +752,11 @@ function saveToLeaderboards(earnedGold) {
     clearList.sort((a, b) => b.clears - a.clears);
     localStorage.setItem('m10_lb_clears', JSON.stringify(clearList.slice(0, 10)));
 
+    // ☁️ 로그인한 계정의 Firestore 클라우드 통합 저장 (골드, 클리어 수, 닉네임)
     if (window.FirebaseService && window.FirebaseService.isReady()) {
         window.FirebaseService.saveGoldRecordToCloud(gameState.playerName, gameState.gold);
         window.FirebaseService.saveClearRecordToCloud(gameState.playerName, gameState.clears);
+        window.FirebaseService.saveUserDataToCloud(gameState);
     }
 }
 

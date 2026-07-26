@@ -163,10 +163,24 @@ function setupEventListeners() {
     document.getElementById('btn-hall-of-fame').addEventListener('click', openHallOfFame);
 }
 
-// 뷰 전환 함수
+// 뷰 전환 함수 (100% 강제 활성화 보장)
 function showView(viewId) {
-    document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
-    document.getElementById(viewId).classList.add('active');
+    try {
+        document.querySelectorAll('.view').forEach(v => {
+            v.classList.remove('active');
+            v.style.display = 'none';
+        });
+        const target = document.getElementById(viewId);
+        if (target) {
+            target.classList.add('active');
+            target.style.display = 'flex';
+            console.log("View switched to:", viewId);
+        } else {
+            console.error("View not found:", viewId);
+        }
+    } catch(e) {
+        console.error("showView error:", e);
+    }
 }
 
 function quitGame() {
@@ -175,6 +189,20 @@ function quitGame() {
     clearInterval(bossState.timerInterval);
     if (g2AnimationId) cancelAnimationFrame(g2AnimationId);
     showView('lobby-view');
+}
+
+// 미니게임 시작 공통 트리거
+function startGame(gameId) {
+    try {
+        console.log("startGame called with ID:", gameId);
+        playSound('click');
+        if (gameId === 1) startGame1();
+        else if (gameId === 2) startGame2();
+        else if (gameId === 3) startGame3();
+    } catch (e) {
+        console.error("startGame Error:", e);
+        alert("게임 시작 중 오류 발생: " + e.message);
+    }
 }
 
 // ==========================================
@@ -488,35 +516,41 @@ function endMiniGame(gameId) {
 // 👹 보스전 (Boss Challenge)
 // ==========================================
 function startBossBattle() {
-    if (gameState.gold < 100) {
-        alert('🪙 보스전에 도전하려면 최소 100 Gold가 필요합니다! 미니게임을 먼저 플레이하세요.');
-        return;
+    try {
+        console.log("startBossBattle triggered!");
+        if (gameState.gold < 100) {
+            alert('🪙 보스전에 도전하려면 최소 100 Gold가 필요합니다! 미니게임을 먼저 플레이하여 골드를 모으세요.');
+            return;
+        }
+
+        // 골드 차감
+        gameState.gold -= 100;
+        updateUIHeader();
+        playSound('boss_hit');
+
+        bossState.currentQIndex = 0;
+        bossState.elapsedTime = 0;
+        bossState.startTime = Date.now();
+
+        document.getElementById('boss-hp-fill').style.width = '100%';
+        document.getElementById('boss-current-q').textContent = '1';
+        document.getElementById('boss-stopwatch').textContent = '00.00';
+
+        showView('boss-view');
+
+        // 스톱워치 인터벌 (10ms 단위 갱신)
+        bossState.timerInterval = setInterval(() => {
+            const now = Date.now();
+            const diff = (now - bossState.startTime) / 1000;
+            bossState.elapsedTime = diff;
+            document.getElementById('boss-stopwatch').textContent = diff.toFixed(2);
+        }, 30);
+
+        generateBossQuestion();
+    } catch(e) {
+        console.error("startBossBattle error:", e);
+        alert("보스전 시작 오류: " + e.message);
     }
-
-    // 골드 차감
-    gameState.gold -= 100;
-    updateUIHeader();
-    playSound('boss_hit');
-
-    bossState.currentQIndex = 0;
-    bossState.elapsedTime = 0;
-    bossState.startTime = Date.now();
-
-    document.getElementById('boss-hp-fill').style.width = '100%';
-    document.getElementById('boss-current-q').textContent = '1';
-    document.getElementById('boss-stopwatch').textContent = '00.00';
-
-    showView('boss-view');
-
-    // 스톱워치 인터벌 (10ms 단위 갱신)
-    bossState.timerInterval = setInterval(() => {
-        const now = Date.now();
-        const diff = (now - bossState.startTime) / 1000;
-        bossState.elapsedTime = diff;
-        document.getElementById('boss-stopwatch').textContent = diff.toFixed(2);
-    }, 30);
-
-    generateBossQuestion();
 }
 
 function generateBossQuestion() {

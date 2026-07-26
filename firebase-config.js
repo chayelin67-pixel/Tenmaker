@@ -51,6 +51,27 @@ try {
 // --- 로그인 / 인증 서비스 ---
 let isLoggingIn = false;
 
+// 모듈 로딩 시점 상관없이 100% 동작하는 전역 로그인 핸들러
+window.doGoogleLogin = function() {
+    console.log("doGoogleLogin triggered!");
+    const btn = document.getElementById('btn-google-login');
+    if (btn) {
+        btn.style.opacity = "0.5";
+        btn.innerText = "로그인 중...";
+    }
+    
+    if (isFirebaseReady) {
+        loginWithGoogle();
+    } else {
+        const checkInterval = setInterval(() => {
+            if (isFirebaseReady) {
+                clearInterval(checkInterval);
+                loginWithGoogle();
+            }
+        }, 100);
+    }
+};
+
 export function loginWithGoogle() {
     if (!isFirebaseReady) {
         alert("Firebase 설정이 아직 준비되지 않았습니다. 잠시 후 다시 시도해 주세요.");
@@ -60,6 +81,11 @@ export function loginWithGoogle() {
     const provider = new GoogleAuthProvider();
     return signInWithRedirect(auth, provider).catch(err => {
         console.error("Google Login Redirect Error:", err);
+        const btn = document.getElementById('btn-google-login');
+        if (btn) {
+            btn.style.opacity = "1";
+            btn.innerText = "로그인";
+        }
         if (err.code === 'auth/unauthorized-domain') {
             alert(`[도메인 승인 필요]\n현재 접속한 주소(${window.location.hostname})가 Firebase 콘솔의 Authorized Domains에 추가되어야 합니다.`);
         } else {
@@ -67,24 +93,6 @@ export function loginWithGoogle() {
         }
     });
 }
-
-// 모듈 로딩 시점 상관없이 100% 동작하는 전역 로그인 핸들러
-window.doGoogleLogin = function() {
-    const btn = document.getElementById('btn-google-login');
-    if (btn) btn.innerText = "이동 중...";
-    
-    if (isFirebaseReady) {
-        loginWithGoogle();
-    } else {
-        // Firebase가 준비될 때까지 100ms마다 체크 후 즉시 실행
-        const checkInterval = setInterval(() => {
-            if (isFirebaseReady) {
-                clearInterval(checkInterval);
-                loginWithGoogle();
-            }
-        }, 100);
-    }
-};
 
 // 리다이렉트 복귀 및 인증 상태 관찰자
 getRedirectResult(auth).then((result) => {

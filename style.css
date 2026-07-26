@@ -109,6 +109,9 @@ body {
     cursor: pointer;
     transition: all 0.2s;
 }
+.btn-auth * {
+    pointer-events: none;
+}
 .btn-auth:hover {
     background: rgba(255, 255, 255, 0.25);
     border-color: var(--accent-gold);

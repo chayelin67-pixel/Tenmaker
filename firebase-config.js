@@ -1,5 +1,5 @@
 // ===================================================
-// Firebase Config & Service Helper (Modular SDK v10)
+// Firebase Config & Service Helper (Secure Environment)
 // ===================================================
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
 import { 
@@ -7,8 +7,7 @@ import {
     GoogleAuthProvider, 
     signInWithPopup, 
     signOut, 
-    onAuthStateChanged,
-    signInAnonymously
+    onAuthStateChanged 
 } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
 import { 
     getFirestore, 
@@ -23,29 +22,30 @@ import {
     setDoc
 } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
 
-// ⚠️ Firebase 콘솔 (https://console.firebase.google.com)에서 프로젝트 생성 후 발급받은 설정값을 아래에 넣으세요.
-// 설정이 완료되기 전에도 LocalStorage Fallback 모드로 안전하게 작동합니다.
+// 환경변수 주입 또는 기본 객체 설정
+const env = window.__FIREBASE_ENV__ || {};
+
 const firebaseConfig = {
-    apiKey: "YOUR_FIREBASE_API_KEY",
-    authDomain: "YOUR_PROJECT_ID.firebaseapp.com",
-    projectId: "YOUR_PROJECT_ID",
-    storageBucket: "YOUR_PROJECT_ID.appspot.com",
-    messagingSenderId: "YOUR_MESSAGING_SENDER_ID",
-    appId: "YOUR_APP_ID"
+    apiKey: env.apiKey || "YOUR_FIREBASE_API_KEY",
+    authDomain: env.authDomain || "YOUR_PROJECT_ID.firebaseapp.com",
+    projectId: env.projectId || "YOUR_PROJECT_ID",
+    storageBucket: env.storageBucket || "YOUR_PROJECT_ID.appspot.com",
+    messagingSenderId: env.messagingSenderId || "YOUR_MESSAGING_SENDER_ID",
+    appId: env.appId || "YOUR_APP_ID"
 };
 
 let app, auth, db;
 let isFirebaseReady = false;
 
 try {
-    if (firebaseConfig.apiKey !== "YOUR_FIREBASE_API_KEY") {
+    if (firebaseConfig.apiKey && firebaseConfig.apiKey !== "YOUR_FIREBASE_API_KEY") {
         app = initializeApp(firebaseConfig);
         auth = getAuth(app);
         db = getFirestore(app);
         isFirebaseReady = true;
-        console.log("🔥 Firebase initialized successfully!");
+        console.log("🔥 Firebase 보안 연동 성공!");
     } else {
-        console.warn("⚠️ FirebaseConfig가 아직 설정되지 않았습니다. 개발용 로컬 모드로 작동합니다.");
+        console.warn("⚠️ Firebase 환경변수가 설정되지 않아 로컬 안전 모드로 작동합니다.");
     }
 } catch (e) {
     console.error("Firebase Initialization Error:", e);
@@ -54,7 +54,7 @@ try {
 // --- 로그인 / 인증 서비스 ---
 export function loginWithGoogle() {
     if (!isFirebaseReady) {
-        alert("Firebase API Key가 아직 설정되지 않았습니다. README.md를 참고하여 firebase-config.js에 키를 입력해주세요!");
+        alert("Firebase 키 설정이 완료되지 않았습니다. 안내에 따라 1단계를 진행해 주세요!");
         return Promise.reject("Firebase not ready");
     }
     const provider = new GoogleAuthProvider();
@@ -80,6 +80,7 @@ export async function saveBossTimeRecordToCloud(playerName, timeSec) {
         await addDoc(collection(db, "lb_boss_time"), {
             name: playerName,
             time: timeSec,
+            uid: auth.currentUser ? auth.currentUser.uid : "anonymous",
             createdAt: serverTimestamp()
         });
         return true;
@@ -95,6 +96,7 @@ export async function saveGoldRecordToCloud(playerName, goldAmount) {
         await addDoc(collection(db, "lb_gold"), {
             name: playerName,
             gold: goldAmount,
+            uid: auth.currentUser ? auth.currentUser.uid : "anonymous",
             createdAt: serverTimestamp()
         });
         return true;
@@ -110,6 +112,7 @@ export async function saveClearRecordToCloud(playerName, totalClears) {
         await addDoc(collection(db, "lb_clears"), {
             name: playerName,
             clears: totalClears,
+            uid: auth.currentUser ? auth.currentUser.uid : "anonymous",
             createdAt: serverTimestamp()
         });
         return true;

@@ -1,0 +1,30 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+    
+    // 🏆 글로벌 랭킹 컬렉션 (누구나 읽기 가능, 인증된 사용자만 생성 가능)
+    match /lb_boss_time/{docId} {
+      allow read: if true;
+      allow create: if request.auth != null || request.resource.data.name is string;
+      allow update, delete: if false; // 랭킹 기록 조작 방지
+    }
+
+    match /lb_gold/{docId} {
+      allow read: if true;
+      allow create: if request.auth != null || request.resource.data.name is string;
+      allow update, delete: if false;
+    }
+
+    match /lb_clears/{docId} {
+      allow read: if true;
+      allow create: if request.auth != null || request.resource.data.name is string;
+      allow update, delete: if false;
+    }
+
+    // 👤 사용자 개별 프로필 데이터 (본인 사용자만 읽기/쓰기 가능)
+    match /users/{userId} {
+      allow read, write: if request.auth != null && request.auth.uid == userId;
+    }
+  }
+}

@@ -376,19 +376,24 @@ function initG2Stage() {
     stage.innerHTML = '';
     g2Bubbles = [];
 
-    for (let i = 0; i < 6; i++) {
+    // 7개의 다양한 숫자 방울 생성
+    for (let i = 0; i < 7; i++) {
         spawnG2Bubble(stage);
     }
 
     function loop() {
+        // 터지지 않고 살아있는 방울들만 이동 틱 처리
         g2Bubbles.forEach(b => {
+            if (b.isPopped) return;
             b.y += b.speed;
-            if (b.y > 320) {
+            if (b.y > 325) {
                 b.y = -60;
                 b.x = Math.random() * (stage.clientWidth - 70);
             }
-            b.el.style.top = b.y + 'px';
-            b.el.style.left = b.x + 'px';
+            if (b.el && b.el.parentNode) {
+                b.el.style.top = b.y + 'px';
+                b.el.style.left = b.x + 'px';
+            }
         });
 
         if (currentActiveGame === 2 && gameTimeLeft > 0) {
@@ -402,24 +407,24 @@ function spawnG2Bubble(stage) {
     const el = document.createElement('div');
     el.className = 'bubble';
     
-    let val = 5;
-    // 10이 되는 짝 조합 스마트 생성 (60% 확률로 기존 방울의 10 짝 생성)
-    if (g2Bubbles.length > 0 && Math.random() < 0.6) {
-        const targetB = g2Bubbles[Math.floor(Math.random() * g2Bubbles.length)];
-        val = 10 - targetB.val;
-    } else {
-        val = Math.floor(Math.random() * 9) + 1;
+    // 1~9 사이의 다양하고 풍성한 숫자 조합
+    let val = Math.floor(Math.random() * 9) + 1;
+    if (g2Bubbles.length > 1 && Math.random() < 0.5) {
+        const liveBubbles = g2Bubbles.filter(b => !b.isPopped);
+        if (liveBubbles.length > 0) {
+            const targetB = liveBubbles[Math.floor(Math.random() * liveBubbles.length)];
+            val = 10 - targetB.val;
+        }
     }
     
-    // 1~9 범위 안전 검증
     val = Math.max(1, Math.min(9, val));
     el.textContent = val;
 
     const x = Math.random() * (stage.clientWidth - 70);
     const y = Math.random() * -300;
-    const speed = 1 + Math.random() * 1.2;
+    const speed = 0.9 + Math.random() * 1.3;
 
-    const bObj = { el, val, x, y, speed, id: Math.random() };
+    const bObj = { el, val, x, y, speed, isPopped: false, id: Math.random() };
     g2Bubbles.push(bObj);
 
     el.addEventListener('click', () => onG2BubbleClick(bObj, stage));
@@ -427,7 +432,7 @@ function spawnG2Bubble(stage) {
 }
 
 function onG2BubbleClick(bObj, stage) {
-    if (g2SelectedBubbles.includes(bObj)) return;
+    if (bObj.isPopped || g2SelectedBubbles.includes(bObj)) return;
     playSound('click');
 
     bObj.el.classList.add('selected');
@@ -436,12 +441,18 @@ function onG2BubbleClick(bObj, stage) {
     if (g2SelectedBubbles.length === 2) {
         const [b1, b2] = g2SelectedBubbles;
         if (b1.val + b2.val === 10) {
+            // 선택한 2개 방울 팝 터뜨리기 (화면에서 완전히 제거)
             playSound('match');
             currentGameScore += 10;
             document.getElementById('g2-score').textContent = currentGameScore;
 
             [b1, b2].forEach(b => {
-                b.el.remove();
+                b.isPopped = true;
+                if (b.el && b.el.parentNode) {
+                    b.el.style.transform = "scale(1.4)";
+                    b.el.style.opacity = "0";
+                    setTimeout(() => b.el.remove(), 150);
+                }
                 g2Bubbles = g2Bubbles.filter(item => item !== b);
                 spawnG2Bubble(stage);
             });
@@ -449,8 +460,8 @@ function onG2BubbleClick(bObj, stage) {
         } else {
             playSound('wrong');
             setTimeout(() => {
-                b1.el.classList.remove('selected');
-                b2.el.classList.remove('selected');
+                if (b1.el) b1.el.classList.remove('selected');
+                if (b2.el) b2.el.classList.remove('selected');
                 g2SelectedBubbles = [];
             }, 300);
         }

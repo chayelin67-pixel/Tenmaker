@@ -18,7 +18,7 @@ console.log("[Tenmaker Game] Script loading...");
 // --- 게임 상태 변수 ---
 window.gameState = {
     playerName: localStorage.getItem('m10_player_name') || '10마법사',
-    gold: parseInt(localStorage.getItem('m10_gold')) || 100, // 기본 100골드
+    gold: parseInt(localStorage.getItem('m10_gold')) || 0, // 게스트 기본 0골드
     clears: parseInt(localStorage.getItem('m10_clears')) || 0,
     bossBestTime: parseFloat(localStorage.getItem('m10_boss_best')) || null,
     soundEnabled: true

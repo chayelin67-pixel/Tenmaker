@@ -703,8 +703,15 @@ function closeHallOfFame() {
     }
 }
 
+// --- 전역 함수 명시적 바인딩 (인라인 HTML onclick 호출 보장) ---
+window.startGame = startGame;
+window.startBossBattle = startBossBattle;
+window.quitGame = quitGame;
+window.closeResultModal = closeResultModal;
+window.switchHallTab = switchHallTab;
 window.openHallOfFame = openHallOfFame;
 window.closeHallOfFame = closeHallOfFame;
+window.resetLeaderboardData = resetLeaderboardData;
 
 function switchHallTab(tabName) {
     playSound('click');

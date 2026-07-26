@@ -683,36 +683,69 @@ function saveToLeaderboards(earnedGold) {
     }
 }
 
+async function openHallOfFame() {
+    playSound('click');
+    document.getElementById('hall-modal').classList.add('active');
+    await renderHallOfFame();
+}
+
+function closeHallOfFame() {
+    document.getElementById('hall-modal').classList.remove('active');
+}
+
+function switchHallTab(tabName) {
+    playSound('click');
+    document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+    document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
+
+    document.querySelector(`.tab-btn[data-tab="${tabName}"]`).classList.add('active');
+    document.getElementById(`tab-${tabName}`).classList.add('active');
+}
+
 async function renderHallOfFame() {
+    const bossUl = document.getElementById('list-boss-time');
+    const goldUl = document.getElementById('list-gold');
+    const clearUl = document.getElementById('list-clears');
+
+    // 로딩 상태 표시
+    const loadingHtml = '<li class="empty-rank">⏳ 랭킹 목록을 불러오는 중...</li>';
+    if (bossUl) bossUl.innerHTML = loadingHtml;
+    if (goldUl) goldUl.innerHTML = loadingHtml;
+    if (clearUl) clearUl.innerHTML = loadingHtml;
+
     // Firebase Cloud 데이터 시도 후 Local fallback
     let bossList = null;
     let goldList = null;
     let clearList = null;
 
     if (window.FirebaseService && window.FirebaseService.isReady()) {
-        bossList = await window.FirebaseService.fetchTop10CloudLeaderboard('boss-time');
-        goldList = await window.FirebaseService.fetchTop10CloudLeaderboard('gold');
-        clearList = await window.FirebaseService.fetchTop10CloudLeaderboard('clears');
+        try {
+            bossList = await window.FirebaseService.fetchTop10CloudLeaderboard('boss-time');
+            goldList = await window.FirebaseService.fetchTop10CloudLeaderboard('gold');
+            clearList = await window.FirebaseService.fetchTop10CloudLeaderboard('clears');
+        } catch (e) {
+            console.error("Cloud leaderboard fetch failed, switching to local:", e);
+        }
     }
 
-    if (!bossList) bossList = getLeaderboard('m10_lb_boss_time', defaultBossTimeRankings);
-    if (!goldList) goldList = getLeaderboard('m10_lb_gold', defaultGoldRankings);
-    if (!clearList) clearList = getLeaderboard('m10_lb_clears', defaultClearRankings);
+    if (!bossList || bossList.length === 0) bossList = getLeaderboard('m10_lb_boss_time', defaultBossTimeRankings);
+    if (!goldList || goldList.length === 0) goldList = getLeaderboard('m10_lb_gold', defaultGoldRankings);
+    if (!clearList || clearList.length === 0) clearList = getLeaderboard('m10_lb_clears', defaultClearRankings);
 
     // 1. 보스 타임어택
-    const bossUl = document.getElementById('list-boss-time');
-    bossUl.innerHTML = '';
-    if (!bossList || bossList.length === 0) {
-        bossUl.innerHTML = '<li class="empty-rank">아직 등록된 기록이 없습니다. 보스를 물리치고 첫 랭커가 되어보세요! 👹</li>';
-    } else {
-        bossList.forEach((item, idx) => {
-            const t = typeof item.time === 'number' ? item.time.toFixed(2) : item.time;
-            bossUl.appendChild(createRankItem(idx + 1, item.name, `${t}초`));
-        });
+    if (bossUl) {
+        bossUl.innerHTML = '';
+        if (!bossList || bossList.length === 0) {
+            bossUl.innerHTML = '<li class="empty-rank">아직 등록된 기록이 없습니다. 보스를 물리치고 첫 랭커가 되어보세요! 👹</li>';
+        } else {
+            bossList.forEach((item, idx) => {
+                const t = typeof item.time === 'number' ? item.time.toFixed(2) : (item.time || "0.00");
+                bossUl.appendChild(createRankItem(idx + 1, item.name, `${t}초`));
+            });
+        }
     }
 
     // 2. 골드
-    const goldUl = document.getElementById('list-gold');
     goldUl.innerHTML = '';
     if (!goldList || goldList.length === 0) {
         goldUl.innerHTML = '<li class="empty-rank">아직 등록된 골드 랭킹이 없습니다. 미니게임을 플레이해보세요! 🪙</li>';

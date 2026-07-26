@@ -24,7 +24,9 @@
                 <button id="btn-google-login" class="btn btn-auth" title="Google 로그인" onclick="window.FirebaseService && window.FirebaseService.executeGoogleLogin()">
                     <img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg" width="16" alt="G"> 로그인
                 </button>
-                <button id="btn-logout" class="btn btn-auth logout hidden" title="로그아웃">로그아웃</button>
+                <button id="btn-logout" class="btn btn-auth logout hidden" title="로그아웃" onclick="window.FirebaseService && window.FirebaseService.executeLogout()">
+                    🚪 로그아웃
+                </button>
             </div>
             <div class="header-stats">
                 <div class="stat-badge gold-badge">

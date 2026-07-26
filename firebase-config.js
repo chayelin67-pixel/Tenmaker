@@ -1,12 +1,11 @@
 // ===================================================
-// Firebase & Auth Master Manager Module
+// Firebase & Auth Master Manager Module (Popup Direct)
 // ===================================================
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
 import { 
     getAuth, 
     GoogleAuthProvider, 
-    signInWithRedirect,
-    getRedirectResult, 
+    signInWithPopup,
     signOut, 
     onAuthStateChanged 
 } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
@@ -46,113 +45,97 @@ try {
     console.error("Firebase Initialization Error:", e);
 }
 
-// 100% 확실하게 구글 로그인 실행하는 핵심 함수
+// UI 업데이트 핵심 전역 헬퍼
+function applyUserToUI(user) {
+    const btnLogin = document.getElementById('btn-google-login');
+    const btnLogout = document.getElementById('btn-logout');
+    const imgEl = document.getElementById('user-photo');
+    const iconEl = document.getElementById('user-avatar-icon');
+    const nameInput = document.getElementById('player-name-input');
+
+    if (user) {
+        console.log("Applying user UI:", user.displayName);
+        if (btnLogin) btnLogin.style.display = 'none';
+        if (btnLogout) btnLogout.style.display = 'inline-flex';
+
+        if (user.photoURL && imgEl) {
+            imgEl.src = user.photoURL;
+            imgEl.classList.remove('hidden');
+            imgEl.style.display = 'inline-block';
+            if (iconEl) iconEl.style.display = 'none';
+        }
+        if (user.displayName && nameInput) {
+            nameInput.value = user.displayName;
+            if (window.gameState) window.gameState.playerName = user.displayName;
+            localStorage.setItem('m10_player_name', user.displayName);
+        }
+    } else {
+        if (btnLogin) btnLogin.style.display = 'inline-flex';
+        if (btnLogout) btnLogout.style.display = 'none';
+        if (imgEl) imgEl.style.display = 'none';
+        if (iconEl) iconEl.style.display = 'inline-block';
+    }
+}
+
+// 팝업 직동 구글 로그인 함수
 export function executeGoogleLogin() {
-    console.log("--> executeGoogleLogin triggered!");
     if (!isFirebaseReady || !auth) {
-        alert("Firebase가 아직 로딩 중입니다. 1~2초 후 다시 눌러주세요.");
+        alert("Firebase 로딩 중입니다. 잠시 후 다시 시도해 주세요.");
         return;
     }
     const provider = new GoogleAuthProvider();
-    signInWithRedirect(auth, provider).catch((err) => {
-        console.error("Redirect Login Error:", err);
-        alert(`로그인 오류 (${err.code}): ${err.message}`);
-    });
+    provider.setCustomParameters({ prompt: 'select_account' });
+
+    signInWithPopup(auth, provider)
+        .then((result) => {
+            console.log("Popup Login Success:", result.user);
+            applyUserToUI(result.user);
+            alert(`🎉 로그인 완료!\n${result.user.displayName || '마법사'}님 환영합니다!`);
+        })
+        .catch((err) => {
+            console.error("Popup Login Error:", err);
+            if (err.code === 'auth/unauthorized-domain') {
+                alert(`[도메인 승인 필요]\n현재 접속한 주소(${window.location.hostname})가 Firebase 콘솔의 Authorized Domains에 추가되어야 합니다.`);
+            } else if (err.code !== 'auth/popup-closed-by-user' && err.code !== 'auth/cancelled-popup-request') {
+                alert(`로그인 중 오류가 발생했습니다 (${err.code}): ${err.message}`);
+            }
+        });
 }
 
 // 로그아웃
 export function executeLogout() {
-    if (auth) signOut(auth);
+    if (auth) {
+        signOut(auth).then(() => {
+            applyUserToUI(null);
+            alert("로그아웃 되었습니다.");
+        });
+    }
 }
 
-let hasShownWelcome = false;
-
-// 리다이렉트 성공 감지 및 Auth 상태 구독
+// 로그인 상태 변경 상시 감지
 if (auth) {
-    getRedirectResult(auth).then((result) => {
-        if (result && result.user) {
-            console.log("Redirect login result user:", result.user.displayName);
-        }
-    }).catch(err => console.error("Redirect Error:", err));
-
     onAuthStateChanged(auth, (user) => {
-        const btnLogin = document.getElementById('btn-google-login');
-        const btnLogout = document.getElementById('btn-logout');
-        const imgEl = document.getElementById('user-photo');
-        const iconEl = document.getElementById('user-avatar-icon');
-        const nameInput = document.getElementById('player-name-input');
-
-        if (user) {
-            console.log("User authenticated:", user.displayName || user.email);
-            
-            // UI 교체
-            if (btnLogin) {
-                btnLogin.style.display = 'none';
-                btnLogin.classList.add('hidden');
-            }
-            if (btnLogout) {
-                btnLogout.style.display = 'inline-flex';
-                btnLogout.classList.remove('hidden');
-            }
-
-            if (user.photoURL && imgEl) {
-                imgEl.src = user.photoURL;
-                imgEl.classList.remove('hidden');
-                imgEl.style.display = 'inline-block';
-                if (iconEl) iconEl.style.display = 'none';
-            }
-            if (user.displayName && nameInput) {
-                const displayName = user.displayName;
-                nameInput.value = displayName;
-                if (window.gameState) window.gameState.playerName = displayName;
-                localStorage.setItem('m10_player_name', displayName);
-            }
-
-            if (!hasShownWelcome) {
-                hasShownWelcome = true;
-                const name = user.displayName || "마법사";
-                alert(`🎉 로그인 성공!\n${name}님 환영합니다! 모은 골드와 기록이 명예의 전당 클라우드에 안전하게 저장됩니다.`);
-            }
-        } else {
-            console.log("User signed out.");
-            hasShownWelcome = false;
-            if (btnLogin) {
-                btnLogin.style.display = 'inline-flex';
-                btnLogin.classList.remove('hidden');
-                btnLogin.innerText = "로그인";
-                btnLogin.style.opacity = "1";
-            }
-            if (btnLogout) {
-                btnLogout.style.display = 'none';
-                btnLogout.classList.add('hidden');
-            }
-            if (imgEl) imgEl.style.display = 'none';
-            if (iconEl) iconEl.style.display = 'inline-block';
-        }
+        applyUserToUI(user);
     });
 }
 
-// DOM이 완료되면 로그인/로그아웃 버튼에 이벤트를 직접 부착
+// DOM 클릭 이벤트 바인딩
 document.addEventListener('DOMContentLoaded', () => {
     const btnLogin = document.getElementById('btn-google-login');
     const btnLogout = document.getElementById('btn-logout');
 
     if (btnLogin) {
-        btnLogin.addEventListener('click', (e) => {
-            e.preventDefault();
-            e.stopPropagation();
-            console.log("Login button clicked!");
-            btnLogin.innerText = "이동 중...";
-            btnLogin.style.opacity = "0.6";
+        btnLogin.onclick = (e) => {
+            if (e) e.preventDefault();
             executeGoogleLogin();
-        });
+        };
     }
 
     if (btnLogout) {
-        btnLogout.addEventListener('click', (e) => {
-            e.preventDefault();
+        btnLogout.onclick = (e) => {
+            if (e) e.preventDefault();
             executeLogout();
-        });
+        };
     }
 });
 

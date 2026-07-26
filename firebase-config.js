@@ -65,6 +65,8 @@ export function executeLogout() {
     if (auth) signOut(auth);
 }
 
+let hasShownWelcome = false;
+
 // 리다이렉트 성공 감지 및 Auth 상태 구독
 if (auth) {
     getRedirectResult(auth).then((result) => {
@@ -82,8 +84,16 @@ if (auth) {
 
         if (user) {
             console.log("User authenticated:", user.displayName || user.email);
-            if (btnLogin) btnLogin.style.display = 'none';
-            if (btnLogout) btnLogout.style.display = 'inline-flex';
+            
+            // UI 교체
+            if (btnLogin) {
+                btnLogin.style.display = 'none';
+                btnLogin.classList.add('hidden');
+            }
+            if (btnLogout) {
+                btnLogout.style.display = 'inline-flex';
+                btnLogout.classList.remove('hidden');
+            }
 
             if (user.photoURL && imgEl) {
                 imgEl.src = user.photoURL;
@@ -92,14 +102,30 @@ if (auth) {
                 if (iconEl) iconEl.style.display = 'none';
             }
             if (user.displayName && nameInput) {
-                nameInput.value = user.displayName;
-                if (window.gameState) window.gameState.playerName = user.displayName;
-                localStorage.setItem('m10_player_name', user.displayName);
+                const displayName = user.displayName;
+                nameInput.value = displayName;
+                if (window.gameState) window.gameState.playerName = displayName;
+                localStorage.setItem('m10_player_name', displayName);
+            }
+
+            if (!hasShownWelcome) {
+                hasShownWelcome = true;
+                const name = user.displayName || "마법사";
+                alert(`🎉 로그인 성공!\n${name}님 환영합니다! 모은 골드와 기록이 명예의 전당 클라우드에 안전하게 저장됩니다.`);
             }
         } else {
             console.log("User signed out.");
-            if (btnLogin) btnLogin.style.display = 'inline-flex';
-            if (btnLogout) btnLogout.style.display = 'none';
+            hasShownWelcome = false;
+            if (btnLogin) {
+                btnLogin.style.display = 'inline-flex';
+                btnLogin.classList.remove('hidden');
+                btnLogin.innerText = "로그인";
+                btnLogin.style.opacity = "1";
+            }
+            if (btnLogout) {
+                btnLogout.style.display = 'none';
+                btnLogout.classList.add('hidden');
+            }
             if (imgEl) imgEl.style.display = 'none';
             if (iconEl) iconEl.style.display = 'inline-block';
         }

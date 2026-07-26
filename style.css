@@ -256,7 +256,15 @@ body {
     align-items: center;
     text-align: center;
     position: relative;
+    z-index: 10;
+    cursor: pointer;
     transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+}
+.game-card * {
+    pointer-events: none; /* 카드 내부 글자나 아이콘 클릭 차단 없이 카드로 클릭 전달 */
+}
+.game-card button {
+    pointer-events: auto;
 }
 .game-card:hover {
     transform: translateY(-6px);
@@ -340,6 +348,9 @@ body {
     align-items: center;
     gap: 20px;
     flex-wrap: wrap;
+    position: relative;
+    z-index: 10;
+    cursor: pointer;
 }
 .boss-banner {
     display: flex;

@@ -182,38 +182,52 @@ function setupEventListeners() {
         });
     }
 
-    // Firebase Auth 상태 관찰
-    setTimeout(() => {
+    // Firebase Auth 상태 실시간 반응 및 UI 동기화
+    function initAuthObserver() {
         if (window.FirebaseService && window.FirebaseService.listenAuthState) {
             window.FirebaseService.listenAuthState((user) => {
                 const imgEl = document.getElementById('user-photo');
                 const iconEl = document.getElementById('user-avatar-icon');
                 const nameInput = document.getElementById('player-name-input');
+                const btnGoogle = document.getElementById('btn-google-login');
+                const btnLogout = document.getElementById('btn-logout');
 
                 if (user) {
-                    // 로그인 성공
-                    btnGoogle.classList.add('hidden');
-                    btnLogout.classList.remove('hidden');
+                    // 로그인 성공!
+                    if (btnGoogle) {
+                        btnGoogle.classList.add('hidden');
+                        btnGoogle.innerText = "로그인";
+                    }
+                    if (btnLogout) btnLogout.classList.remove('hidden');
 
-                    if (user.photoURL) {
+                    if (user.photoURL && imgEl) {
                         imgEl.src = user.photoURL;
                         imgEl.classList.remove('hidden');
-                        iconEl.classList.add('hidden');
+                        if (iconEl) iconEl.classList.add('hidden');
                     }
-                    if (user.displayName) {
+                    if (user.displayName && nameInput) {
                         gameState.playerName = user.displayName;
                         nameInput.value = user.displayName;
+                        localStorage.setItem('m10_player_name', user.displayName);
                     }
+                    console.log("Logged in user:", user.displayName || user.email);
                 } else {
                     // 로그아웃 상태
-                    btnGoogle.classList.remove('hidden');
-                    btnLogout.classList.add('hidden');
-                    imgEl.classList.add('hidden');
-                    iconEl.classList.remove('hidden');
+                    if (btnGoogle) {
+                        btnGoogle.classList.remove('hidden');
+                        btnGoogle.innerText = "로그인";
+                    }
+                    if (btnLogout) btnLogout.classList.add('hidden');
+                    if (imgEl) imgEl.classList.add('hidden');
+                    if (iconEl) iconEl.classList.remove('hidden');
                 }
             });
+        } else {
+            setTimeout(initAuthObserver, 100);
         }
-    }, 500);
+    }
+
+    initAuthObserver();
 }
 
 // 뷰 전환 함수

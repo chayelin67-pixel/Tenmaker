@@ -86,7 +86,7 @@ window.doGoogleLogin = function() {
     }
 };
 
-// 리다이렉트 복귀 처리
+// 리다이렉트 복귀 및 인증 상태 관찰자
 getRedirectResult(auth).then((result) => {
     if (result && result.user) {
         console.log("Redirect login successful:", result.user);
@@ -94,6 +94,19 @@ getRedirectResult(auth).then((result) => {
 }).catch((error) => {
     console.error("Redirect Result Error:", error);
 });
+
+export function listenAuthState(callback) {
+    if (!isFirebaseReady) {
+        const check = setInterval(() => {
+            if (isFirebaseReady) {
+                clearInterval(check);
+                onAuthStateChanged(auth, callback);
+            }
+        }, 100);
+        return;
+    }
+    onAuthStateChanged(auth, callback);
+}
 
 export function logoutUser() {
     if (!isFirebaseReady) return Promise.resolve();
